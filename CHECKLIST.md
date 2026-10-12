@@ -9,9 +9,9 @@ Tick items only when the work is committed and visible in the repo. One step at 
 - [x] About and Privacy placeholders in place
 
 ## 2. Design tokens
-- [ ] tokens.css: colour (PROVISIONAL until Canva codes arrive), type, spacing, radii, shadows
-- [ ] motion.js: shared GSAP eases and durations, reduced-motion handling
-- [ ] Chakra Petch + body font loaded
+- [x] tokens.css: colour (PROVISIONAL until Canva codes arrive), type, spacing, radii, shadows
+- [x] motion.js: shared GSAP eases and durations, reduced-motion handling
+- [x] Chakra Petch + body font loaded
 
 ## 3. Hero (blocked until HERO.md exists)
 - [ ] Three.js scene per HERO.md
