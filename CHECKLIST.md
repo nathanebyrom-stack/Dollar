@@ -3,10 +3,10 @@
 Tick items only when the work is committed and visible in the repo. One step at a time, in order.
 
 ## 1. Skeleton
-- [ ] Folder structure, index.html, shared header/footer, 404
-- [ ] netlify.toml (publish dir, pretty URLs, security headers)
-- [ ] Routes: /, /about, /contact, /services/web-design, /services/marketing, /services/workflow-automation, /work/fluid-process-uk, /work/aoe-engineering, /work/moss-and-memory, /privacy
-- [ ] About and Privacy placeholders in place
+- [x] Folder structure, index.html, shared header/footer, 404
+- [x] netlify.toml (publish dir, pretty URLs, security headers)
+- [x] Routes: /, /about, /contact, /services/web-design, /services/marketing, /services/workflow-automation, /work/fluid-process-uk, /work/aoe-engineering, /work/moss-and-memory, /privacy
+- [x] About and Privacy placeholders in place
 
 ## 2. Design tokens
 - [ ] tokens.css: colour (PROVISIONAL until Canva codes arrive), type, spacing, radii, shadows
