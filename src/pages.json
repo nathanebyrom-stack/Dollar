@@ -1,0 +1,19 @@
+{
+  "site": {
+    "name": "34 Automation",
+    "url": "https://www.34automation.com"
+  },
+  "pages": [
+    { "route": "/", "source": "pages/home.html", "title": "34 Automation", "description": "[PLACEHOLDER: home meta description — final copy pending humanize pass]", "nav": "home" },
+    { "route": "/about/", "source": "pages/about.html", "title": "About | 34 Automation", "description": "[PLACEHOLDER: about meta description]", "nav": "about" },
+    { "route": "/contact/", "source": "pages/contact.html", "title": "Contact | 34 Automation", "description": "[PLACEHOLDER: contact meta description]", "nav": "contact" },
+    { "route": "/services/web-design/", "source": "pages/services/web-design.html", "title": "Web design | 34 Automation", "description": "[PLACEHOLDER: web design meta description]", "nav": "services" },
+    { "route": "/services/marketing/", "source": "pages/services/marketing.html", "title": "Marketing | 34 Automation", "description": "[PLACEHOLDER: marketing meta description]", "nav": "services" },
+    { "route": "/services/workflow-automation/", "source": "pages/services/workflow-automation.html", "title": "Workflow automation | 34 Automation", "description": "[PLACEHOLDER: workflow automation meta description]", "nav": "services" },
+    { "route": "/work/fluid-process-uk/", "source": "pages/work/fluid-process-uk.html", "title": "Fluid Process UK | 34 Automation", "description": "[PLACEHOLDER: Fluid Process UK case study meta description]", "nav": "work" },
+    { "route": "/work/aoe-engineering/", "source": "pages/work/aoe-engineering.html", "title": "AOE Engineering | 34 Automation", "description": "[PLACEHOLDER: AOE Engineering case study meta description]", "nav": "work" },
+    { "route": "/work/moss-and-memory/", "source": "pages/work/moss-and-memory.html", "title": "Moss & Memory | 34 Automation", "description": "[PLACEHOLDER: Moss & Memory case study meta description]", "nav": "work" },
+    { "route": "/privacy/", "source": "pages/privacy.html", "title": "Privacy policy | 34 Automation", "description": "[PLACEHOLDER: privacy policy meta description]", "nav": "privacy" },
+    { "route": "/404.html", "source": "pages/404.html", "title": "Page not found | 34 Automation", "description": "This page could not be found.", "nav": "", "noindex": true }
+  ]
+}

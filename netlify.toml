@@ -1,0 +1,36 @@
+# Netlify config for www.34automation.com
+# Pages are assembled from src/ into dist/ by scripts/build.mjs (no dependencies).
+# Pretty URLs: every route is built as <route>/index.html, so /about/ serves without .html.
+# Domain is NOT pointed here — that happens only after Nathan's written sign-off (CHECKLIST step 9).
+
+[build]
+  command = "node scripts/build.mjs"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Old-style .html paths go to the clean URL.
+[[redirects]]
+  from = "/index.html"
+  to = "/"
+  status = 301
+
+# Security headers for every response.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+    Cross-Origin-Opener-Policy = "same-origin"
+    # Self-hosted scripts only. Google Fonts allowed for step 2 (Chakra Petch + body font).
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests"
+
+# Long cache for static assets (filenames to be fingerprinted later if needed; keep modest for now).
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
