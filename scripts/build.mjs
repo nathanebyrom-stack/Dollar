@@ -44,7 +44,9 @@ ${fill(head, {
 ${nav}
 <main id="main" tabindex="-1">
 ${body}</main>
-${fill(footer, { year })}<script src="/assets/js/main.js" defer></script>
+${fill(footer, { year })}<script src="/assets/vendor/gsap-3.13.0.min.js" defer></script>
+<script src="/assets/js/motion.js" defer></script>
+<script src="/assets/js/main.js" defer></script>
 </body>
 </html>
 `;
