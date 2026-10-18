@@ -62,11 +62,11 @@ Every card shows an honest status badge: **Live**, **In build** or **Concept**. 
 |---|---|---|---|
 | Fluid Process UK | **Live** · https://www.fluidprocess.co.uk | Desktop and phone scroll recordings; the ROI calculator in use; the steel-blue design system shown as a design detail | Yes |
 | AOE Engineering | **In build** | Old site vs new build as a before/after slider once the new build has a preview; until then a placeholder card | Yes, placeholder until the new site is live |
-| Moss & Memory | **Concept** | **Only the high-resolution section with the photorealistic images.** Nothing else from the project. | Yes, built around that section only |
+| Moss & Memory | **Concept** | **Only** the hero, the five-step "From empty glass to living world" build sequence and the "Your story, composed by hand" section. Never the Gallery. Media is already in `src/assets/work/moss-and-memory/` (see its ASSETS.md). | Yes, built around those sections only |
 
 - **Ember is dropped.** Do not mention it anywhere.
 - The "test site" Nathan mentioned is the Fluid Process UK site; there is no separate project card.
-- Moss & Memory: the location of that high-resolution section (URL or files) is still [CONFIRM]. Build the card and page slot; don't guess the source.
+- Moss & Memory media came from Nathan's own screen recording; don't re-capture or add anything beyond those sections.
 
 ---
 
@@ -130,6 +130,6 @@ The phases replace steps 3 onwards in the old checklist; `CHECKLIST.md` now foll
 ## 10. Still open
 
 - [ ] Netlify connected to this repo (Nathan: TBC). Until then, no preview link; build and check locally.
-- [ ] Moss & Memory: where the high-resolution photoreal section lives (URL or files).
-- [ ] Logo SVG for the wordmark.
-- [ ] All site copy (Nathan's voice).
+- [x] Moss & Memory sections and media (18 Oct).
+- [ ] Logo: Nathan to pick one of the four "34 / AUTOMATION" lockups (Stacked, Emblem, Monolith, Plate) and export it from Canva as SVG or transparent PNG. Until then the header keeps the typeset wordmark.
+- [ ] All site copy: entirely in Nathan's own voice (voice profile: claude/voice/voice-profile-nathan.md in the Agentic manager project, via Jenny), humanized and slop-gated. Dollar never writes final copy; until it arrives, [PLACEHOLDER: …].
