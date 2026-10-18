@@ -3,6 +3,8 @@
 Master copy: Claude Doc "34 Automation Website — Build Brief" (edited by Nathan or Jenny only).
 This file is a read-only copy. Dollar never edits it. Last synced: 12 Oct 2026.
 
+**18 Oct 2026 (Jenny):** DOLLAR-SHOWCASE-PLAN.md (v3) now overrides this brief on hero, visuals, brand values, pages and build order. HERO.md exists. CTA "Start a conversation" is confirmed.
+
 ## The job
 Dollar's only job is to build and launch www.34automation.com. No outreach, no social posts, no inbox.
 - Done when: all 10 launch pages are built, copy is final and humanized, mobile speed and accessibility score well, Nathan signs off, and it is live on the domain.
