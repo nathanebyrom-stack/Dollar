@@ -3,6 +3,12 @@
 Keep the last 5 entries in full. Reduce older ones to one line under "Earlier".
 Each entry: date, what was done, what's next, blocker, preview link.
 
+## 19 Oct 2026 (session 3)
+- **Done:** Phase 0: ARCHITECTURE.md written (no site code). Covers file structure, build changes, module graph (with the CSP-safe rewrite of Three.js `'three'` imports instead of an inline import map), scene graph and die face layout, quality tiers with runtime drop, a scroll timeline per Home scene, capture and still-render pipelines, CSP (adds `media-src 'self'` only), a full asset list marking gaps, eight decisions for Nathan (D1–D8), performance budget and risks. Confirmed brand colours pre-checked for AA: all pass on Graphite and Panel (lowest 5.79:1).
+- **Next:** waiting for Nathan to approve ARCHITECTURE.md (CHECKLIST step 3). Nothing past Phase 0 starts until it is ticked. Then Phase 1: brand swap and shell.
+- **Blocker:** Nathan's approval of ARCHITECTURE.md. Also logged: this sandbox can't reach www.fluidprocess.co.uk (proxy 403), so the Fluid Process UK recordings need supplying or allowlisting; only Chromium is available (no headless WebKit).
+- **Preview:** https://34automation-preview.netlify.app
+
 ## 12 Oct 2026 (session 2)
 - **Done:** Step 2 Design tokens (commit 59bad98). `assets/css/tokens.css` is the single source for colour (all values marked PROVISIONAL until the Canva brand codes arrive), type scale, spacing, radii, shadows/glow and motion durations/easings; reduced motion sets all durations to 0. `assets/js/motion.js` reads durations from the tokens, sets GSAP defaults, maps easings, and gives reduced-motion-safe `to`/`from` wrappers plus a change listener. Chakra Petch (500/600/700) and Inter (variable) are self-hosted with OFL licences; GSAP 3.13.0 is vendored. base.css now uses tokens only. CSP tightened to self-hosted fonts. Checked in headless Chromium with the CSP applied: fonts load, GSAP runs, reduced motion completes tweens instantly, no console errors; all routes still 200 with no mobile overflow. Token text colours pass WCAG AA on every surface (lowest 5.8:1).
 - **Next:** Step 3 Hero is blocked (no HERO.md). Next unblocked item is Step 4 Home, but the checklist says build the hero first and Home includes the hero, so Home will be built around a hero slot unless Jenny says otherwise.

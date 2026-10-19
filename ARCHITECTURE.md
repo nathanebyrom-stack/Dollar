@@ -1,0 +1,363 @@
+# ARCHITECTURE.md: 34automation.com showcase build
+
+**Author:** Dollar · **Written:** Mon 19 Oct 2026 (Phase 0) · **Status:** waiting for Nathan's approval (CHECKLIST step 3)
+**Sources:** DOLLAR-SHOWCASE-PLAN.md (v3), HERO.md, BRIEF.md, and the repo as it stands at `c818b3d`.
+
+This is the technical plan for Phases 1–8. It contains no site copy; every visible word that isn't a service or project name stays `[PLACEHOLDER: …]` until Nathan's copy lands. Section 11 lists the decisions Nathan needs to make at review; section 10 lists every asset and marks what is missing.
+
+---
+
+## 1. Principles
+
+1. **HTML first.** Every page is complete, readable and navigable with no JavaScript and no WebGL. The 3D layer is an enhancement painted behind real HTML text.
+2. **One canvas per page, loaded after first paint.** The 3D module is fetched with dynamic `import()` once the page has painted; it never blocks text or layout.
+3. **No new build tooling.** Keep `node scripts/build.mjs` (no dependencies). Libraries are vendored into `src/assets/vendor/`. Dev-only tools (capture, still rendering) live in `tools/` with their own `package.json` so Netlify never installs them.
+4. **Strict CSP stays strict.** No inline scripts, no `unsafe-eval`, no third-party hosts. The only addition is `media-src 'self'`.
+5. **Honest content.** Status badges (Live / In build / Concept), no invented figures, no fake recordings, gold only in the "34" of the logo.
+
+---
+
+## 2. File structure (target at end of Phase 5)
+
+Items marked ✓ exist today; everything else is new.
+
+```
+/
+├─ ARCHITECTURE.md                     this file
+├─ BRIEF.md · CLAUDE.md · DOLLAR-SHOWCASE-PLAN.md · HERO.md · CHECKLIST.md · LOG.md   ✓
+├─ netlify.toml                        ✓ (CSP gets media-src; vendor cache rule)
+├─ scripts/
+│  └─ build.mjs                        ✓ (extended: per-page scene scripts, /work/ index, sitemap in Phase 8)
+├─ tools/                              dev only, never deployed, own package.json
+│  ├─ package.json                     playwright-core (uses /opt/pw-browsers), sharp
+│  ├─ capture/
+│  │  ├─ capture.mjs                   records project sites (section 8)
+│  │  ├─ projects.json                 URL, viewports, scroll length, output folder per project
+│  │  └─ README.md
+│  ├─ stills/
+│  │  ├─ render-stills.mjs             renders die stills from the real scene (section 7)
+│  │  └─ README.md
+│  └─ check/
+│     └─ smoke.mjs                     headless route + console + overflow + CSP check (exists informally; formalised here)
+└─ src/
+   ├─ pages.json                       ✓ (+ /work/ route, + "scene" field per page)
+   ├─ partials/ head.html · header.html · footer.html   ✓ (logo swap, Work link, theme-color)
+   ├─ pages/
+   │  ├─ home.html · about.html · contact.html · privacy.html · 404.html   ✓
+   │  ├─ work/index.html               NEW: /work/ index (card list, status badges)
+   │  ├─ work/fluid-process-uk.html · aoe-engineering.html · moss-and-memory.html   ✓
+   │  └─ services/web-design.html · marketing.html · workflow-automation.html       ✓
+   └─ assets/
+      ├─ brand/34-automation-plate.svg ✓ · README.md ✓
+      ├─ css/
+      │  ├─ tokens.css                 ✓ (brand values swapped in Phase 1)
+      │  ├─ base.css                   ✓
+      │  ├─ components.css             cards, badges, frames, buttons, eyebrows, panels
+      │  └─ scenes.css                 scroll-section heights, pinned panels, stills, canvas layer
+      ├─ fonts/                        ✓ Inter, Chakra Petch · NEW Space Grotesk 700, IBM Plex Mono 400/500 (+ OFL licences)
+      ├─ js/
+      │  ├─ motion.js                  ✓ shared eases/durations, reduced motion
+      │  ├─ main.js                    ✓ site-wide: nav, smooth scroll, reveal-on-scroll
+      │  ├─ smooth.js                  Lenis ↔ ScrollTrigger wiring
+      │  ├─ graph.js                   automation graph (SVG + GSAP), Home scene 4 + automation page
+      │  └─ scene/                     ES modules, loaded only on pages with a scene
+      │     ├─ boot.js                 tier detection, still swap, dynamic import of stage.js
+      │     ├─ tier.js                 quality tier logic (section 6)
+      │     ├─ stage.js                renderer, camera, loop, resize, visibility, dispose
+      │     ├─ die.js                  procedural die geometry and face layout
+      │     ├─ materials.js            graphite PBR, brushed-silver bevel, engraving maps
+      │     ├─ engravings.js           canvas-drawn symbol masks → normal + emissive maps
+      │     ├─ lighting.js             key, rim, RoomEnvironment
+      │     ├─ post.js                 High tier only: bloom + grain composer
+      │     ├─ frames.js               Work gallery: browser/phone frames + video textures
+      │     ├─ timeline-home.js        ScrollTrigger timelines for Home scenes 0–3
+      │     └─ timeline-service.js     single-face hero for each service page
+      ├─ img/die/                      pre-rendered stills (AVIF + JPG) per face, 2 sizes
+      ├─ vendor/
+      │  ├─ README.md                  versions, licences, source URLs, how imports were rewritten
+      │  ├─ gsap-3.13.0.min.js         ✓
+      │  ├─ ScrollTrigger-3.13.0.min.js
+      │  ├─ lenis-1.3.x.min.js         (exact patch pinned when vendored)
+      │  └─ three-r186/                three.module.min.js, three.core.min.js, addons/ (only the files used)
+      └─ work/
+         ├─ fluid-process-uk/          recordings + posters (missing, section 10)
+         ├─ aoe-engineering/           before/after (missing)
+         └─ moss-and-memory/           ✓ build-sequence.mp4/.webm, posters (+ AVIF posters to generate)
+```
+
+`dist/` stays git-ignored and is rebuilt by Netlify on every push.
+
+---
+
+## 3. Build changes (`scripts/build.mjs`)
+
+- **pages.json** gains two fields:
+  - `"scene"`: `"home"`, `"service:web"`, `"service:marketing"`, `"service:automation"` or absent.
+  - `"graph"`: `true` on Home and Workflow automation (loads `graph.js`).
+- Pages with a scene get `<script type="module" src="/assets/js/scene/boot.js"></script>` and a `data-scene` attribute on `<body>`. Pages without one load nothing 3D.
+- Classic deferred scripts on every page, in order: `gsap`, `ScrollTrigger`, `lenis`, `motion.js`, `smooth.js`, `main.js`.
+- New route `/work/` → `pages/work/index.html`, added to header (Work group link) and footer.
+- Phase 8 adds `sitemap.xml` and `robots.txt` generation from pages.json (404 excluded, noindex respected).
+- Header/footer: the typeset wordmark is replaced by `<img src="/assets/brand/34-automation-plate.svg" alt="34 Automation" width height>` inside the home link. `theme-color` becomes `#0C0E11`.
+
+---
+
+## 4. Module graph
+
+```
+every page (classic, defer, in order)
+  gsap-3.13.0 ─► ScrollTrigger-3.13.0 ─► lenis ─► motion.js ─► smooth.js ─► main.js
+                                                       │
+                                                       └─ window.Motion (eases, durations, reduced flag)
+
+pages with data-scene (type=module)
+  scene/boot.js
+    ├─ tier.js                         (sync, tiny: decides High / Mid / Low)
+    ├─ Low  → stills only (CSS crossfades driven by ScrollTrigger); stop here
+    └─ High / Mid → after first paint + requestIdleCallback:
+         import('./stage.js')
+           ├─ vendor/three-r186/three.module.min.js (→ three.core.min.js)
+           ├─ addons/geometries/RoundedBoxGeometry.js
+           ├─ addons/environments/RoomEnvironment.js
+           ├─ die.js ─► materials.js ─► engravings.js
+           ├─ lighting.js
+           ├─ post.js   (High only, dynamic import)
+           │    └─ addons/postprocessing/ EffectComposer, RenderPass, UnrealBloomPass, ShaderPass, OutputPass
+           ├─ frames.js (Home only, dynamic import when the Work section is within one viewport)
+           └─ timeline-home.js | timeline-service.js  (use window.gsap + ScrollTrigger)
+
+pages with graph:true (classic, defer)
+  graph.js  (SVG + GSAP; no WebGL)
+```
+
+**Import rewriting (CSP-critical).** Three.js addons import the bare specifier `'three'`, which needs an import map. An inline import map would break `script-src 'self'`, and external import maps aren't supported across browsers. So when vendoring, every `from 'three'` in the addon files is rewritten to the relative path of `three.module.min.js`. This is done once by hand (or a tiny script recorded in `vendor/README.md`), and the vendored files are committed. No bundler.
+
+**Globals.** GSAP, ScrollTrigger and Lenis stay UMD globals (as GSAP is today). Scene modules read `window.gsap`, `window.ScrollTrigger`, `window.Motion` and `window.__lenis` rather than importing them, so there is one copy of each.
+
+---
+
+## 5. Scene graph
+
+One `WebGLRenderer` per page, canvas `position: fixed; inset: 0; z-index: 0; pointer-events: none` (pointer events re-enabled only over the Work frames). HTML content sits above at `z-index: 1`.
+
+```
+Scene (background: none; CSS supplies Graphite #0C0E11 + radial falloff)
+├─ PerspectiveCamera  fov 30, near 0.1, far 100        ← driven by ScrollTrigger (dolly, half-orbit)
+│   └─ cameraRig (Group)                                 ← orbit pivot at die centre
+├─ environment: PMREM(RoomEnvironment), intensity ~0.4  ← reflections only, no visible background
+├─ lights
+│   ├─ keyLight   DirectionalLight, cool white (~#DCE6F5), from upper left
+│   ├─ rimLight   SpotLight, Silver #CBD3DE, behind-right; animated on Arrival (sweep)
+│   └─ fill       HemisphereLight, very low
+├─ dieRoot (Group)                                       ← idle drift (<2°/s) + pointer tilt (≤4°)
+│   └─ dieRoll (Group)                                   ← quarter-turn rolls in Services
+│       └─ dieMesh  RoundedBoxGeometry(1,1,1, segments 6, radius ~0.08), material groups:
+│           ├─ group 0–5: flat faces   → graphite PBR (metalness 0.9, roughness 0.35–0.5)
+│           │                            + per-face normalMap / emissiveMap for engraved faces
+│           └─ group 6: bevels         → brushed silver (High: MeshPhysicalMaterial anisotropy)
+└─ workGroup (Home only, added lazily)
+    ├─ frame[n]  browser frame: rounded slab + bezel + screen plane (VideoTexture)
+    └─ frame[n]  phone frame:   rounded slab + screen plane (VideoTexture)
+```
+
+**Face layout.** The Services roll is a +90° rotation about X per step, which brings the top face to the front each time. So the four faces round the X ring are:
+
+| Face | Engraving | Arrives at front |
+|---|---|---|
+| Front (+Z) | "34" mark (outline from the logo plate, Spark glow, **never gold**) | at load |
+| Top (+Y) | Web design symbol | Services step 1 |
+| Back (−Z) | Marketing symbol | Services step 2 |
+| Bottom (−Y) | Workflow automation symbol | Services step 3 |
+| Left / Right | plain machined metal | never faces camera head-on |
+
+Each engraving texture is authored rotated so it reads upright at the moment its face reaches the front.
+
+**Material groups.** `RoundedBoxGeometry` is one geometry; at build time each triangle is assigned to a flat-face group (normal within 0.5° of an axis) or the bevel group. Done once at load, cheap.
+
+**Engravings.** Symbols are drawn as `Path2D` on an offscreen 2D canvas (1024 px High, 512 px Mid), blurred slightly, then converted to a normal map with a Sobel pass on the CPU, plus an emissive mask. Emissive intensity animates 0 → 1 when that face is active (Spark `#F2F5FA`). No image files needed. Symbol designs: see decision D2.
+
+---
+
+## 6. Quality tiers
+
+Decided once in `tier.js` before any 3D loads; can drop (never rise) at runtime.
+
+| Check | Result |
+|---|---|
+| `?tier=high|mid|low` in URL | forced (testing only) |
+| No WebGL2 context, or renderer string is software (SwiftShader, llvmpipe, Microsoft Basic Render) | **Low** |
+| `prefers-reduced-motion: reduce` | **Low** (motion), see below |
+| `navigator.connection.saveData` true | **Low** |
+| `deviceMemory < 4` or `hardwareConcurrency < 4` (where reported) | **Low** |
+| `pointer: coarse` or viewport < 900 px | **Mid** |
+| otherwise | **High** |
+| Runtime guard: mean frame time > 22 ms over 2 s after Arrival | drop one tier (High→Mid rebuilds without composer; Mid→Low disposes WebGL and shows stills) |
+
+| | High | Mid | Low / no WebGL | Reduced motion |
+|---|---|---|---|---|
+| Die | live, physical material, anisotropic bevels | live, standard material | pre-rendered still | pre-rendered still |
+| Pixel ratio | min(dpr, 2) | min(dpr, 1.5) | n/a | n/a |
+| Bloom (engravings only) + film grain | yes | no | no | no |
+| Camera orbit / rolls | scrubbed | scrubbed | none; face change = CSS crossfade between stills | none; crossfade |
+| Idle drift, pointer tilt | yes | drift only | no | no |
+| Lenis smooth scroll | yes | yes | yes | **off** (native scroll) |
+| Work gallery | 3D frames, pinned horizontal | 3D frames ≥ 900 px; below that, card list with in-view video | card list, video plays on tap | card list, video plays on tap |
+| Automation graph | animated SVG | animated SVG | animated SVG | static SVG, all nodes lit |
+
+Render loop: `renderer.setAnimationLoop` runs only while the canvas's section is in view (IntersectionObserver on the scene sections) and `document.visibilityState === 'visible'`; otherwise `setAnimationLoop(null)`.
+
+**Still-first on every tier.** The hero always paints the matching die still (AVIF, sized to viewport) as an `<img>` with fixed dimensions. High/Mid crossfade from the still to the live canvas once the first frame renders, so there is never an empty hero and no layout shift. The headline text, not the image, is the LCP target.
+
+---
+
+## 7. Home scroll timeline (per scene)
+
+One ScrollTrigger per scene, scrubbed (`scrub: 1` on High, `scrub: true` on Mid), Lenis feeding `ScrollTrigger.update`. Heights are section heights; pinned sections add their pin distance on top.
+
+| Scene | Section height / pin | Trigger range | Camera | Die | HTML |
+|---|---|---|---|---|---|
+| **0 Arrival** | (time-based, not scroll) 0–1.5 s after the first rendered frame | n/a | static, slightly wide | fades up from black; `rimLight` sweeps left→right across the bevels; "34" engraving glows 0→1 | text already visible from first paint; wordmark/eyebrow settle with `Motion.from` (opacity + 8 px), skipped under reduced motion |
+| **1 Hero** | 120 vh, no pin | `top top` → `bottom top` | dolly in ~15% and orbit 0°→+90° round Y (first half of the half-orbit) | still (drift only) | headline left (desktop) / below die (mobile) scrolls normally; `[PLACEHOLDER]` copy |
+| **2 Services** | 100 vh, **pinned for 300 vh** (3 steps) | `top top` → `+=300%` | orbit +90°→+180° across the pin (completes the half-orbit), die shifts to the right third on desktop | three quarter-turn rolls about X, each eased `power3.inOut` with a short hold (snap to step), active face emissive 0→1, previous 1→0 | one text panel per service slides in from the left (x −24 px, opacity) beside the die; each panel links to its service page; `aria-live` not used (content is static HTML in order) |
+| **3 Work** | 100 vh, **pinned for (n frames × 80 vh)** | `top top` → `+=n×80%` | camera holds; die fades out and scales down by 0.6 during the first 20% | hidden after 20% | 3D frames travel right→left (horizontal gallery); each frame tilts ≤6° toward the pointer; click / Enter on the matching HTML card opens the case study; videos play only while their frame is on screen |
+| **4 Automation, live** | 150 vh, no pin (canvas idle and paused) | `top 70%` → `bottom 30%` | n/a (render loop paused) | n/a | SVG graph in HTML: nodes light in Spark in sequence as a pulse travels along edges, scrubbed to scroll; generic labels only, no client data or results |
+| **5 Close** | auto height | `top 80%` | n/a | optional: die returns small, "34" face, idle | Nathan's photo slot, one line `[PLACEHOLDER]`, CTA button **"Start a conversation"** → `/contact/` |
+
+Service pages use `timeline-service.js`: die rests showing that service's face, camera does a short dolly on scroll (60 vh), no rolls, no gallery.
+
+Mobile (< 900 px): Services pin stays but the panel sits below the die; Work becomes a vertical list of frames/cards (no horizontal pin) to avoid scroll-jacking on touch.
+
+---
+
+## 8. Capture pipeline (`tools/capture/`)
+
+Dev-only; run by Dollar in the session, outputs committed to `src/assets/work/<project>/`.
+
+1. `projects.json`: one entry per project: URL, scroll distance, and which viewports to record. Only **Fluid Process UK** is a live capture target. AOE waits for a preview; Moss & Memory uses Nathan's supplied recording and is **never re-captured**.
+2. `capture.mjs` (playwright-core, Chromium at `/opt/pw-browsers/chromium`):
+   - viewports **1440×900** and **390×844** (DPR 2 for the phone), `recordVideo` at native size;
+   - wait for `networkidle` and fonts, dismiss nothing automatically (if a cookie banner appears, the run stops and logs it rather than clicking through on the site owner's behalf);
+   - scroll with an eased JS loop over 8–12 s at a steady rate (no jumps), hold 1 s at top and bottom.
+3. ffmpeg (installed in the sandbox) per recording:
+   - MP4: H.264 `-crf 26 -preset slow -pix_fmt yuv420p -movflags +faststart -an`, 30 fps;
+   - WebM: VP9 `-crf 36 -b:v 0 -an`, 30 fps;
+   - widths: desktop 1280, phone 390 (texture-friendly);
+   - re-encode at a higher CRF until each file is **≤ 2.5 MB**;
+   - posters: first meaningful frame → JPG (q 80) and AVIF (libaom / sharp).
+4. ROI calculator clip: a separate scripted interaction recording (type into the calculator's fields with clearly dummy numbers, record), **only** if Nathan confirms that's acceptable (decision D5).
+5. Re-run when a project site changes. Outputs listed in each folder's `ASSETS.md` with date and source.
+
+**Known blocker:** this cloud sandbox cannot reach `https://www.fluidprocess.co.uk` (proxy returns 403, checked 19 Oct 2026). Per the plan, the recordings must either be supplied (Anna) or the domain allowlisted for the session. No mock recording will be made.
+
+**Die stills (`tools/stills/render-stills.mjs`).** Loads the built site locally with `?tier=high&still=<face>`, waits for the frame, and screenshots the canvas for faces 34 / web / marketing / automation at 1600 px and 800 px wide. Exports AVIF (q 50) and JPG (q 80) into `src/assets/img/die/`. Headless Chromium renders WebGL via SwiftShader: slow but deterministic. Re-run whenever die materials change.
+
+---
+
+## 9. Netlify / CSP changes
+
+Final `Content-Security-Policy` (only change: `media-src 'self'`):
+
+```
+default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self';
+img-src 'self' data:; media-src 'self'; connect-src 'self'; form-action 'self';
+frame-ancestors 'none'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
+```
+
+- `worker-src` not added (no worker planned). `blob:` not added (textures come from same-origin video and canvas).
+- GSAP and Lenis write styles through the CSSOM (`element.style`), which `style-src 'self'` allows; no `setAttribute('style')` and no `<style>` injection in our code. Verified per page in the smoke check.
+- Netlify Forms posts to the same origin, so `form-action 'self'` holds.
+- New header rule: `/assets/vendor/*` and `/assets/fonts/*` → `Cache-Control: public, max-age=31536000, immutable` (file names carry versions). Other assets keep `max-age=3600`.
+- No domain or DNS change in any phase until Nathan's written sign-off.
+
+---
+
+## 10. Asset list
+
+| Asset | Status | Source / action |
+|---|---|---|
+| Logo plate `34-automation-plate.svg` | ✓ have | approved 19 Oct |
+| Brand colours (6) | ✓ have | plan §2. AA pre-check done (lowest pair: Muted on Panel 5.79:1) |
+| Inter, Chakra Petch (OFL) | ✓ have | self-hosted |
+| Space Grotesk 700, IBM Plex Mono 400/500 (OFL) | ✗ missing | Phase 1: fetch from Fontsource npm (v5.3.0), self-host with licences |
+| GSAP 3.13.0 | ✓ have | |
+| ScrollTrigger 3.13.0 | ✗ missing | Phase 1: vendor from `gsap@3.13.0` |
+| Three.js r186 (0.186.1) + 6 addons | ✗ missing | Phase 1: vendor, rewrite `'three'` imports |
+| Lenis 1.3.x | ✗ missing | Phase 1: vendor UMD build |
+| Die engraving symbols (Web design, Marketing, Workflow automation) | ✗ missing | **D2**: Dollar draws simple line symbols in code for Nathan to approve or replace |
+| "34" engraving | ✓ source | outlines taken from the logo plate SVG, rendered in Spark |
+| Die stills (4 faces × 2 sizes × AVIF/JPG) | ✗ to make | Phase 2, `tools/stills` |
+| Fluid Process UK: desktop + phone scroll recordings | ✗ **blocked** | sandbox can't reach the site; needs supplying or allowlisting |
+| Fluid Process UK: ROI calculator in use | ✗ **blocked** | same; plus **D5** |
+| Fluid Process UK: steel-blue design system detail | ✗ missing | needs the design tokens or a screenshot of the system from Nathan/Anna |
+| AOE Engineering: old site recording | ✗ missing | site URL to confirm; placeholder card until then |
+| AOE Engineering: new build preview | ✗ not yet | "In build"; placeholder card |
+| Moss & Memory: build-sequence MP4/WebM | ✓ have | 547 KB / 558 KB, under the 2.5 MB cap |
+| Moss & Memory: posters (hero, plants, light) JPG | ✓ have | AVIF versions to generate in Phase 3 |
+| Moss & Memory: "Your story, composed by hand" still | ✗ missing | ASSETS.md: needs a clean re-capture from the concept page; no blurred frame |
+| Moss & Memory: phone recording | ✗ none | not in the source; M&M shows a browser frame only |
+| Nathan's photo | ✗ missing | About + Home scene 5 |
+| All site copy (headlines, service text, case studies, meta descriptions) | ✗ missing | Nathan's voice via Jenny; `[PLACEHOLDER]` until then |
+| Contact details (email; phone if wanted) | ✗ missing | Nathan |
+| Company registration details for footer | ✗ missing | Nathan (already a placeholder) |
+| Full UK GDPR privacy policy text | ✗ missing | before launch |
+| Favicon / app icons | ✗ missing | **D6** |
+| Open Graph image (1200×630) | ✗ missing | Phase 8; rendered from the die still + logo plate |
+
+---
+
+## 11. Decisions for Nathan at review
+
+| # | Decision | Dollar's default if approved as written |
+|---|---|---|
+| D1 | Approve this architecture as a whole | — |
+| D2 | Die symbols: who designs the three service engravings? | Dollar draws clean line symbols in code (browser window, broadcast signal, node chain); Nathan approves or supplies his own SVGs |
+| D3 | Mobile Work gallery is a vertical list, not a pinned horizontal scroll (avoids scroll-jacking on touch) | vertical on < 900 px |
+| D4 | Automation graph (scene 4) is SVG + GSAP, not WebGL: lighter, sharper text, works on every tier | SVG |
+| D5 | May the capture script type dummy numbers into the Fluid Process ROI calculator for the "in use" clip? | no clip until Nathan says yes |
+| D6 | Favicon: the "34" from the logo plate (gold "34" on Graphite) counts as the wordmark's "34", so gold is allowed there? | silver "34" on Graphite unless Nathan prefers gold |
+| D7 | Chakra Petch: the logo plate is an image, so Chakra Petch is no longer used anywhere visible. Keep it as a no-JS/no-image fallback only (not preloaded), or remove it? | keep, not preloaded |
+| D8 | Fluid Process UK recordings: allowlist the domain for Dollar's sessions, or Anna supplies them? | log as blocker; build the gallery with the M&M recording and placeholder frames meanwhile |
+
+---
+
+## 12. Performance budget and risks
+
+| Budget | Target |
+|---|---|
+| First paint (HTML + CSS + 2 preloaded fonts) | ≤ 150 KB transferred |
+| Hero die still (mobile) | ≤ 60 KB AVIF |
+| 3D JS (three core + addons + scene modules) | ≤ 200 KB gzip, fetched after first paint |
+| Each Work video | ≤ 2.5 MB, `preload="none"`, fetched when its section is one viewport away |
+| Lighthouse mobile | Performance ≥ 85, Accessibility ≥ 95, SEO ≥ 95 |
+| Main content visible on mobile | < 2.5 s |
+
+**Risks**
+
+1. **Three.js parse cost on mid-range phones** could hurt Lighthouse TBT. Mitigation: still-first hero, import only after `load` + idle on Mid tier, runtime tier drop. If Performance still lands under 85, the fallback is Low tier (stills) on phones; Dollar would bring that to Nathan rather than ship under target.
+2. **WebKit check:** the plan asks for headless WebKit each session, but only Chromium is installed in the cloud sandbox and installing browsers is not allowed here. Chromium is checked every session; Safari/iOS needs a real-device or hosted check before launch (launch list). Flagged.
+3. **Fluid Process UK capture blocked** by the sandbox network (section 8). The centrepiece needs at least one Live recording; this is the main schedule risk for the end-of-October target.
+4. **SwiftShader stills** may render slightly differently from GPU output (no anisotropy). Stills are reviewed by eye before committing; if they look flat, they are rendered with anisotropy off on all tiers for consistency.
+
+---
+
+## 13. Accessibility
+
+- Every scene section has a real heading and text in the DOM, in reading order; the canvas is `aria-hidden="true"`.
+- Work frames mirror HTML cards; keyboard focus moves through the cards, and the focused card highlights its 3D frame. Click on a frame and Enter on a card go to the same URL.
+- Status badges are text, not colour alone. Videos are muted, decorative (`aria-hidden`), with no autoplay on Low/reduced motion.
+- Pinned sections never trap focus; skip link stays first. Reduced motion removes Lenis, pinning scrub and all transforms (end states only).
+- Contrast: all six brand colours pass AA on Graphite and Panel (pre-checked); re-checked after the Phase 1 swap.
+
+---
+
+## 14. Testing each session
+
+`tools/check/smoke.mjs` against `dist/` served locally, in headless Chromium:
+
+- every route returns 200, one `<h1>`, no broken internal links;
+- no console errors and no CSP violations (listens for `securitypolicyviolation`);
+- no horizontal overflow at 375 px and 1440 px;
+- each tier forced via `?tier=` renders without errors; reduced motion emulated;
+- screenshots of Home at 390 px and 1440 px saved to the scratchpad for a visual check (not committed).
+
+Preview after each push: https://34automation-preview.netlify.app (no custom domain).

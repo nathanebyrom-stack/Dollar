@@ -15,7 +15,7 @@ Steps 3 onwards replaced by Jenny, 18 Oct 2026, to follow DOLLAR-SHOWCASE-PLAN.m
 - [x] Chakra Petch + body font loaded
 
 ## 3. Phase 0: Architecture (no site code)
-- [ ] ARCHITECTURE.md written (file structure, module graph, scene graph, scroll timeline per Home scene, quality tiers, capture pipeline, CSP changes, asset list with gaps)
+- [x] ARCHITECTURE.md written (file structure, module graph, scene graph, scroll timeline per Home scene, quality tiers, capture pipeline, CSP changes, asset list with gaps)
 - [ ] **Nathan approves ARCHITECTURE.md** (Nathan or Jenny ticks this. Until it is ticked, nothing below may start.)
 
 ## 4. Phase 1: Brand swap and shell
