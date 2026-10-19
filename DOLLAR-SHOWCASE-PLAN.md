@@ -129,7 +129,7 @@ The phases replace steps 3 onwards in the old checklist; `CHECKLIST.md` now foll
 
 ## 10. Still open
 
-- [ ] Netlify connected to this repo (Nathan: TBC). Until then, no preview link; build and check locally.
+- [x] Netlify connected (19 Oct): every push to main deploys to https://34automation-preview.netlify.app. Put this link in every LOG entry. No custom domain until Nathan signs off.
 - [x] Moss & Memory sections and media (18 Oct).
 - [ ] Logo: Nathan to pick one of the four "34 / AUTOMATION" lockups (Stacked, Emblem, Monolith, Plate) and export it from Canva as SVG or transparent PNG. Until then the header keeps the typeset wordmark.
 - [ ] All site copy: entirely in Nathan's own voice (voice profile: claude/voice/voice-profile-nathan.md in the Agentic manager project, via Jenny), humanized and slop-gated. Dollar never writes final copy; until it arrives, [PLACEHOLDER: …].
