@@ -33,7 +33,7 @@ Source: the 34automation Brand & Marketing Playbook in Canva ("How 34 looks").
 - **Gold is rationed.** The playbook says gold is for the "earn / win" story, never the core agency. On this site gold appears only in the "34" of the wordmark, nowhere else. Not on the hero object, not on buttons.
 - **Type:** Chakra Petch stays for the "34 / AUTOMATION" wordmark only. Display headings move to **Space Grotesk Bold** (tracking −2%). Body stays **Inter**. Labels, eyebrows, stats and tags use **IBM Plex Mono, uppercase, +12% tracking**. Self-host all fonts (OFL) like the existing ones.
 - **Layout rules from the playbook:** dark first; small radii (4–8 px), hairline borders, thin dividers; one idea per frame; generous space. "Like a control panel, not a flyer."
-- **Logo files:** none supplied yet. Keep the typeset wordmark in the header until Nathan supplies an SVG.
+- **Logo:** `src/assets/brand/34-automation-plate.svg` (horizontal, dark backgrounds only). It replaces the typeset wordmark in Phase 1.
 
 ---
 
@@ -131,5 +131,5 @@ The phases replace steps 3 onwards in the old checklist; `CHECKLIST.md` now foll
 
 - [x] Netlify connected (19 Oct): every push to main deploys to https://34automation-preview.netlify.app. Put this link in every LOG entry. No custom domain until Nathan signs off.
 - [x] Moss & Memory sections and media (18 Oct).
-- [ ] Logo: Nathan to pick one of the four "34 / AUTOMATION" lockups (Stacked, Emblem, Monolith, Plate) and export it from Canva as SVG or transparent PNG. Until then the header keeps the typeset wordmark.
+- [x] Logo (19 Oct): `src/assets/brand/34-automation-plate.svg`, approved by Nathan. Swap it into the header and footer in Phase 1; see the README beside it.
 - [ ] All site copy: entirely in Nathan's own voice (voice profile: claude/voice/voice-profile-nathan.md in the Agentic manager project, via Jenny), humanized and slop-gated. Dollar never writes final copy; until it arrives, [PLACEHOLDER: …].
