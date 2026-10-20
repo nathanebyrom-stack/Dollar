@@ -3,6 +3,12 @@
 Keep the last 5 entries in full. Reduce older ones to one line under "Earlier".
 Each entry: date, what was done, what's next, blocker, preview link.
 
+## 20 Oct 2026 (session 6, handover)
+- **Done:** Scheduled Dollar sessions are switched off; the build moves to Claude Code with Nathan via HANDOVER.md. No site code. (1) Folded decisions D1–D8 (plan §11) into ARCHITECTURE.md: status now approved; §11 rewritten as a decision table with the sections each one affects; D2 line-icon symbols approved on preview before engraving (§5, §10); D3 vertical gallery under 900 px and D4 SVG graph (§7); D5 ROI clip with "Example inputs" label and no quoted figures (§8, §10); D6 silver "34" favicon and D7 Chakra Petch fallback only, not preloaded (§2, §3); D8 Anna records the Fluid Process UK clips, M&M clip stands in (§8, §10, §12). (2) Wrote HANDOVER.md: reading order, current state, Phases 1–8 as work packages, assets and who supplies the missing ones, hard rules, how to check each phase, and a ready-to-paste Phase 1 kickoff prompt. Design rule: still no grid/dot/blueprint backgrounds anywhere.
+- **Next:** Nathan starts Phase 1 in Claude Code with the kickoff prompt at the end of HANDOVER.md.
+- **Blocker:** None for Phase 1. The Dollar scheduled task should be disabled (it fired twice today). tools/check/smoke.mjs is still informal; formalising it is noted in HANDOVER.md.
+- **Preview:** https://34automation-preview.netlify.app
+
 ## 20 Oct 2026 (session 5)
 - **Done:** No site code. The approval gate is now ticked (commit 0b52278), so the next item would be Phase 1 (brand colours into tokens.css). But the same commit added DOLLAR-SHOWCASE-PLAN.md §12: the rest of the build runs in Claude Code with Nathan from HANDOVER.md, and Dollar's weekday sessions are switched off. The plan wins, so Dollar stood down rather than start Phase 1 on main alongside Nathan's sessions. HANDOVER.md does not exist in the repo yet. Design rule re-checked: still no grid, dot, graph-paper or blueprint background in the code, ARCHITECTURE.md, HERO.md or the plan; nothing to remove.
 - **Next:** Nathan, in Claude Code: Phase 1 (CHECKLIST step 4). ARCHITECTURE.md's status line and section 11 still read "waiting for approval" and list D1–D8 as open questions; the final answers are in the plan §11, which wins. Worth updating in the first Claude Code session.
@@ -27,11 +33,6 @@ Each entry: date, what was done, what's next, blocker, preview link.
 - **Blocker:** HERO.md missing (Nathan to pick one of three hero concepts). No Netlify site connected, so no preview link. Canva brand codes still needed to finalise colours.
 - **Preview:** none yet.
 
-## 12 Oct 2026 (session 1)
-- **Done:** Step 1 Skeleton (commit 98cc63a). Dependency-free build (`node scripts/build.mjs`) assembles `src/pages` + shared header/footer partials into `dist/`. All 10 routes plus 404 build and return 200; clean folder URLs (/about/, /services/web-design/ …). netlify.toml sets build command, `dist` publish dir and security headers (HSTS, CSP, nosniff, frame-deny, referrer, permissions). About has a photo slot and story placeholders; Privacy is a placeholder pending the full UK GDPR policy. Checked in headless Chromium: one h1 per page, no broken internal links, no horizontal scroll at 375px, header sub-menus reachable by keyboard. All unconfirmed copy is a visible [PLACEHOLDER: …]; base styles are PROVISIONAL.
-- **Next:** Step 2 Design tokens: tokens.css (colour PROVISIONAL), motion.js (GSAP eases, reduced motion), Chakra Petch + body font.
-- **Blocker:** No preview link. The repo is not yet connected to a Netlify site (needs Nathan to connect it; preview/branch deploys only, no domain). Not blocking step 2. Still open for later: HERO.md (step 3), Canva brand codes (tokens stay PROVISIONAL), CTA wording confirmation.
-- **Preview:** none yet.
-
 ## Earlier
+- 12 Oct 2026 (session 1): Step 1 skeleton built (98cc63a): build script, 10 routes + 404, netlify.toml with security headers.
 - 12 Oct 2026: Repo created; brief, checklist and log added by Jenny.

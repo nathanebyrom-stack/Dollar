@@ -1,9 +1,9 @@
 # ARCHITECTURE.md: 34automation.com showcase build
 
-**Author:** Dollar · **Written:** Mon 19 Oct 2026 (Phase 0) · **Revised:** Tue 20 Oct 2026 (gap review, see LOG.md) · **Status:** waiting for Nathan's approval (CHECKLIST step 3)
+**Author:** Dollar · **Written:** Mon 19 Oct 2026 (Phase 0) · **Revised:** Tue 20 Oct 2026 (gap review, see LOG.md) · **Status:** approved by Nathan, 20 Oct 2026; decisions D1–D8 final (section 11, from DOLLAR-SHOWCASE-PLAN.md §11). Build continues in Claude Code from HANDOVER.md
 **Sources:** DOLLAR-SHOWCASE-PLAN.md (v3), HERO.md, BRIEF.md, and the repo as it stands at `c818b3d`.
 
-This is the technical plan for Phases 1–8. It contains no site copy; every visible word that isn't a service or project name stays `[PLACEHOLDER: …]` until Nathan's copy lands. Section 11 lists the decisions Nathan needs to make at review; section 10 lists every asset and marks what is missing.
+This is the technical plan for Phases 1–8. It contains no site copy; every visible word that isn't a service or project name stays `[PLACEHOLDER: …]` until Nathan's copy lands. Section 11 records the decisions made at review; section 10 lists every asset and marks what is missing.
 
 ---
 
@@ -31,7 +31,7 @@ Items marked ✓ exist today; everything else is new.
 ├─ scripts/
 │  └─ build.mjs                        ✓ (extended: per-page scene scripts, /work/ index, sitemap in Phase 8)
 ├─ tools/                              dev only, never deployed, own package.json
-│  ├─ package.json                     playwright-core (uses /opt/pw-browsers), sharp
+│  ├─ package.json                     playwright-core (browser path from env; /opt/pw-browsers in the sandbox), sharp
 │  ├─ capture/
 │  │  ├─ capture.mjs                   records project sites (section 8)
 │  │  ├─ projects.json                 URL, viewports, scroll length, output folder per project
@@ -57,7 +57,7 @@ Items marked ✓ exist today; everything else is new.
       │  ├─ base.css                   ✓
       │  ├─ components.css             cards, badges, frames, buttons, eyebrows, panels
       │  └─ scenes.css                 scroll-section heights, pinned panels, stills, canvas layer
-      ├─ fonts/                        ✓ Inter, Chakra Petch · NEW Space Grotesk 700, IBM Plex Mono 400/500 (+ OFL licences)
+      ├─ fonts/                        ✓ Inter, Chakra Petch (fallback only, never preloaded: D7) · NEW Space Grotesk 700, IBM Plex Mono 400/500 (+ OFL licences)
       ├─ js/
       │  ├─ motion.js                  ✓ shared eases/durations, reduced motion
       │  ├─ main.js                    ✓ (today it only sets the `js` class on <html>; nav, reveal-on-scroll and the smooth.js hook are added in Phase 1)
@@ -104,6 +104,8 @@ Items marked ✓ exist today; everything else is new.
 - **No-JS layout gate.** Scroll lengths for pinned scenes come only from ScrollTrigger's `pinSpacing` at runtime. `scenes.css` never sets pin heights in `vh`, and anything that only makes sense with motion (stacked service panels, horizontal gallery track) is scoped under `html.js` (the class `main.js` already sets). Without JS, every section flows as a normal document with no empty scroll gaps.
 - Phase 8 adds `sitemap.xml` and `robots.txt` generation from pages.json (404 excluded, noindex respected).
 - Header/footer: the typeset wordmark is replaced by `<img src="/assets/brand/34-automation-plate.svg" alt="34 Automation" width height>` inside the home link. `theme-color` becomes `#0C0E11`.
+- Favicon (D6, decided): silver "34" (Silver `#CBD3DE`) on Graphite `#0C0E11`, as `favicon.svg` plus a 32 px PNG and 180 px `apple-touch-icon`. No gold: gold stays in the header logo plate only.
+- Chakra Petch (D7, decided): stays self-hosted as the `font-family` fallback for the wordmark if the logo image fails; its `<link rel="preload">` tags are removed in Phase 1.
 
 ---
 
@@ -182,7 +184,7 @@ Each engraving texture is authored rotated so it reads upright at the moment its
 
 **Material groups.** `RoundedBoxGeometry` is one geometry; at build time each triangle is assigned to a flat-face group (normal within 0.5° of an axis) or the bevel group. Done once at load, cheap.
 
-**Engravings.** Symbols are drawn as `Path2D` on an offscreen 2D canvas (1024 px High, 512 px Mid), blurred slightly, then converted to a normal map with a Sobel pass on the CPU, plus an emissive mask. Emissive intensity animates 0 → 1 when that face is active (Spark `#F2F5FA`). No image files needed. Symbol designs: see decision D2.
+**Engravings.** Symbols are drawn as `Path2D` on an offscreen 2D canvas (1024 px High, 512 px Mid), blurred slightly, then converted to a normal map with a Sobel pass on the CPU, plus an emissive mask. Emissive intensity animates 0 → 1 when that face is active (Spark `#F2F5FA`). No image files needed. Symbol designs (D2, decided): clean line icons drawn in code: browser window (Web design), broadcast signal (Marketing), linked nodes (Workflow automation). Nathan approves them on the preview (shown flat on a test page) before they are engraved on the die.
 
 ---
 
@@ -240,7 +242,9 @@ One ScrollTrigger per scene, scrubbed (`scrub: 1` on High, `scrub: true` on Mid)
 
 Service pages use `timeline-service.js`: die rests showing that service's face, camera does a short dolly on scroll (60 vh), no rolls, no gallery.
 
-Mobile (< 900 px): Services pin stays but the panel sits below the die; Work becomes a vertical list of frames/cards (no horizontal pin) to avoid scroll-jacking on touch.
+Mobile (< 900 px): Services pin stays but the panel sits below the die; Work becomes a vertical list of frames/cards (no horizontal pin) to avoid scroll-jacking on touch (D3, decided).
+
+Scene 4 is SVG + GSAP in `graph.js`, never WebGL (D4, decided).
 
 ---
 
@@ -259,10 +263,10 @@ Dev-only; run by Dollar in the session, outputs committed to `src/assets/work/<p
    - widths: desktop 1280, phone 390 (texture-friendly);
    - re-encode at a higher CRF until each file is **≤ 2.5 MB**;
    - posters: first meaningful frame → JPG (q 80) and AVIF (libaom / sharp).
-4. ROI calculator clip: a separate scripted interaction recording (type into the calculator's fields with clearly dummy numbers, record), **only** if Nathan confirms that's acceptable (decision D5).
+4. ROI calculator clip (D5, decided yes): a separate scripted interaction recording that types round, obviously example inputs into the calculator's fields. The clip carries a visible "Example inputs" label (on the card/frame in our HTML, and burned into the poster), and no saving figure from it is quoted anywhere on the site as a result.
 5. Re-run when a project site changes. Outputs listed in each folder's `ASSETS.md` with date and source.
 
-**Known blocker:** this cloud sandbox cannot reach `https://www.fluidprocess.co.uk` (proxy returns 403, checked 19 Oct 2026). Per the plan, the recordings must either be supplied (Anna) or the domain allowlisted for the session. No mock recording will be made.
+**Who records (D8, decided):** the cloud sandbox cannot reach `https://www.fluidprocess.co.uk` (proxy 403, 19 Oct 2026), so Anna runs `capture.mjs` on Nathan's Mac and drops the outputs in `src/assets/work/fluid-process-uk/`. The script must therefore run on macOS with a normal Playwright Chromium (the `/opt/pw-browsers` path is a sandbox default, overridable by env var). Until the clips land, the gallery uses the Moss & Memory clip and a poster frame. No mock recording will be made.
 
 **Die stills (`tools/stills/render-stills.mjs`).** Loads the built site locally with `?tier=high&still=<face>`, waits for the frame, and screenshots the canvas for faces 34 / web / marketing / automation at 1600 px and 800 px wide. Exports AVIF (q 50) and JPG (q 80) into `src/assets/img/die/`. Headless Chromium renders WebGL via SwiftShader: slow but deterministic. Re-run whenever die materials change.
 
@@ -298,11 +302,11 @@ frame-ancestors 'none'; base-uri 'self'; object-src 'none'; upgrade-insecure-req
 | ScrollTrigger 3.13.0 | ✗ missing | Phase 1: vendor from `gsap@3.13.0` |
 | Three.js r186 (0.186.1) + 6 addons | ✗ missing | Phase 1: vendor, rewrite `'three'` imports |
 | Lenis 1.3.x | ✗ missing | Phase 1: vendor UMD build |
-| Die engraving symbols (Web design, Marketing, Workflow automation) | ✗ missing | **D2**: Dollar draws simple line symbols in code for Nathan to approve or replace |
+| Die engraving symbols (Web design, Marketing, Workflow automation) | ✗ to make | **D2**: line icons drawn in code (browser window, broadcast signal, linked nodes); Nathan approves on the preview before engraving |
 | "34" engraving | ✓ source | outlines taken from the logo plate SVG, rendered in Spark |
 | Die stills (4 faces × 2 sizes × AVIF/JPG) | ✗ to make | Phase 2, `tools/stills` |
-| Fluid Process UK: desktop + phone scroll recordings | ✗ **blocked** | sandbox can't reach the site; needs supplying or allowlisting |
-| Fluid Process UK: ROI calculator in use | ✗ **blocked** | same; plus **D5** |
+| Fluid Process UK: desktop + phone scroll recordings | ✗ missing | **D8**: Anna records on Nathan's Mac with `capture.mjs`; M&M clip + poster stand in meanwhile |
+| Fluid Process UK: ROI calculator in use | ✗ missing | **D8** (Anna) + **D5**: example inputs, "Example inputs" label, no figures quoted |
 | Fluid Process UK: steel-blue design system detail | ✗ missing | needs the design tokens or a screenshot of the system from Nathan/Anna |
 | AOE Engineering: old site recording | ✗ missing | site URL to confirm; placeholder card until then |
 | AOE Engineering: new build preview | ✗ not yet | "In build"; placeholder card |
@@ -315,23 +319,25 @@ frame-ancestors 'none'; base-uri 'self'; object-src 'none'; upgrade-insecure-req
 | Contact details (email; phone if wanted) | ✗ missing | Nathan |
 | Company registration details for footer | ✗ missing | Nathan (already a placeholder) |
 | Full UK GDPR privacy policy text | ✗ missing | before launch |
-| Favicon / app icons | ✗ missing | **D6** |
+| Favicon / app icons | ✗ to make | **D6**: silver "34" on Graphite, no gold (Phase 1) |
 | Open Graph image (1200×630) | ✗ missing | Phase 8; rendered from the die still + logo plate |
 
 ---
 
-## 11. Decisions for Nathan at review
+## 11. Decisions (final, 20 Oct 2026)
 
-| # | Decision | Dollar's default if approved as written |
-|---|---|---|
-| D1 | Approve this architecture as a whole | — |
-| D2 | Die symbols: who designs the three service engravings? | Dollar draws clean line symbols in code (browser window, broadcast signal, node chain); Nathan approves or supplies his own SVGs |
-| D3 | Mobile Work gallery is a vertical list, not a pinned horizontal scroll (avoids scroll-jacking on touch) | vertical on < 900 px |
-| D4 | Automation graph (scene 4) is SVG + GSAP, not WebGL: lighter, sharper text, works on every tier | SVG |
-| D5 | May the capture script type dummy numbers into the Fluid Process ROI calculator for the "in use" clip? | no clip until Nathan says yes |
-| D6 | Favicon: the "34" from the logo plate (gold "34" on Graphite) counts as the wordmark's "34", so gold is allowed there? | silver "34" on Graphite unless Nathan prefers gold |
-| D7 | Chakra Petch: the logo plate is an image, so Chakra Petch is no longer used anywhere visible. Keep it as a no-JS/no-image fallback only (not preloaded), or remove it? | keep, not preloaded |
-| D8 | Fluid Process UK recordings: allowlist the domain for Dollar's sessions, or Anna supplies them? | log as blocker; build the gallery with the M&M recording and placeholder frames meanwhile |
+Nathan approved this document on 20 Oct and asked Jenny to decide D2–D8. Source: DOLLAR-SHOWCASE-PLAN.md §11, which wins if the two ever differ.
+
+| # | Question | Decision | Sections affected |
+|---|---|---|---|
+| D1 | Approve the architecture | **Approved** | all |
+| D2 | Who designs the three service engravings? | Drawn as clean line icons in code (browser window, broadcast signal, linked nodes). Nathan approves them on the preview before they are engraved on the die | 5, 10 |
+| D3 | Mobile Work gallery | **Vertical list under 900 px**, no pinned horizontal scroll | 6, 7 |
+| D4 | Automation graph technology | **SVG + GSAP**, not WebGL | 4, 6, 7 |
+| D5 | Example inputs in the Fluid Process ROI calculator clip? | **Yes**: round, obviously example inputs; visible "Example inputs" label; no saving figure quoted anywhere as a result | 8, 10 |
+| D6 | Favicon colour | **Silver "34" on Graphite**; gold stays in the header logo only | 3, 10 |
+| D7 | Chakra Petch | **Keep as a fallback only**, not preloaded | 2, 3 |
+| D8 | Fluid Process UK recordings | **Anna records** them on Nathan's Mac with the capture script into `src/assets/work/fluid-process-uk/`; until then the gallery uses the Moss & Memory clip and a poster frame | 8, 10, 12 |
 
 ---
 
@@ -350,7 +356,7 @@ frame-ancestors 'none'; base-uri 'self'; object-src 'none'; upgrade-insecure-req
 
 1. **Three.js parse cost on mid-range phones** could hurt Lighthouse TBT. Mitigation: still-first hero, import only after `load` + idle on Mid tier, runtime tier drop. If Performance still lands under 85, the fallback is Low tier (stills) on phones; Dollar would bring that to Nathan rather than ship under target.
 2. **WebKit check:** the plan asks for headless WebKit each session, but only Chromium is installed in the cloud sandbox and installing browsers is not allowed here. Chromium is checked every session; Safari/iOS needs a real-device or hosted check before launch (launch list). Flagged.
-3. **Fluid Process UK capture blocked** by the sandbox network (section 8). The centrepiece needs at least one Live recording; this is the main schedule risk for the end-of-October target.
+3. **Fluid Process UK recordings depend on Anna** (D8, section 8). The centrepiece needs at least one Live recording; this is the main schedule risk for the end-of-October target. The gallery ships with the Moss & Memory clip until they land.
 4. **SwiftShader stills** may render slightly differently from GPU output (no anisotropy). Stills are reviewed by eye before committing; if they look flat, they are rendered with anisotropy off on all tiers for consistency.
 
 ---
