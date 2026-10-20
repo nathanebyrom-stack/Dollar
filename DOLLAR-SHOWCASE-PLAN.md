@@ -133,3 +133,24 @@ The phases replace steps 3 onwards in the old checklist; `CHECKLIST.md` now foll
 - [x] Moss & Memory sections and media (18 Oct).
 - [x] Logo (19 Oct): `src/assets/brand/34-automation-plate.svg`, approved by Nathan. Swap it into the header and footer in Phase 1; see the README beside it.
 - [ ] All site copy: entirely in Nathan's own voice (voice profile: claude/voice/voice-profile-nathan.md in the Agentic manager project, via Jenny), humanized and slop-gated. Dollar never writes final copy; until it arrives, [PLACEHOLDER: …].
+
+---
+
+## 11. Architecture decisions (20 Oct 2026)
+
+Nathan approved ARCHITECTURE.md on 20 Oct and asked Jenny to make the calls on D2–D8. They are final unless Nathan changes them.
+
+| # | Decision |
+|---|---|
+| D1 | ARCHITECTURE.md approved. |
+| D2 | Dollar draws the three service symbols as clean line icons in code (browser window, broadcast signal, linked nodes). Nathan approves them on the preview before they're engraved on the die. |
+| D3 | Under 900 px the Work gallery is a vertical list, not a pinned horizontal scroll. |
+| D4 | The automation graph (Home scene 4) is SVG + GSAP, not WebGL. |
+| D5 | Yes: the capture script may type round, obviously example inputs into the Fluid Process ROI calculator for the "in use" clip. The clip carries a visible "Example inputs" label, and no saving figure from it is quoted anywhere as a result. |
+| D6 | Favicon: silver "34" on Graphite. Gold stays in the header logo only. |
+| D7 | Keep Chakra Petch as a fallback only (not preloaded). |
+| D8 | Anna records the Fluid Process UK clips on Nathan's Mac with the capture script and drops them in `src/assets/work/fluid-process-uk/`. Until they land, the gallery uses the Moss & Memory clip and a poster frame. |
+
+## 12. Handover to Claude Code
+
+The rest of the build runs in Claude Code with Nathan, from `HANDOVER.md`. Dollar's weekday sessions are switched off.

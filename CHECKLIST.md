@@ -16,7 +16,7 @@ Steps 3 onwards replaced by Jenny, 18 Oct 2026, to follow DOLLAR-SHOWCASE-PLAN.m
 
 ## 3. Phase 0: Architecture (no site code)
 - [x] ARCHITECTURE.md written (file structure, module graph, scene graph, scroll timeline per Home scene, quality tiers, capture pipeline, CSP changes, asset list with gaps)
-- [ ] **Nathan approves ARCHITECTURE.md** (Nathan or Jenny ticks this. Until it is ticked, nothing below may start.)
+- [x] **Nathan approves ARCHITECTURE.md** (approved 20 Oct 2026; Nathan asked Jenny to decide D2–D8, see DOLLAR-SHOWCASE-PLAN.md section 11) (Nathan or Jenny ticks this. Until it is ticked, nothing below may start.)
 
 ## 4. Phase 1: Brand swap and shell
 - [ ] Confirmed brand colours in tokens.css, PROVISIONAL marks removed, AA re-checked
