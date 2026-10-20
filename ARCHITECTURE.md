@@ -1,6 +1,6 @@
 # ARCHITECTURE.md: 34automation.com showcase build
 
-**Author:** Dollar · **Written:** Mon 19 Oct 2026 (Phase 0) · **Status:** waiting for Nathan's approval (CHECKLIST step 3)
+**Author:** Dollar · **Written:** Mon 19 Oct 2026 (Phase 0) · **Revised:** Tue 20 Oct 2026 (gap review, see LOG.md) · **Status:** waiting for Nathan's approval (CHECKLIST step 3)
 **Sources:** DOLLAR-SHOWCASE-PLAN.md (v3), HERO.md, BRIEF.md, and the repo as it stands at `c818b3d`.
 
 This is the technical plan for Phases 1–8. It contains no site copy; every visible word that isn't a service or project name stays `[PLACEHOLDER: …]` until Nathan's copy lands. Section 11 lists the decisions Nathan needs to make at review; section 10 lists every asset and marks what is missing.
@@ -14,6 +14,8 @@ This is the technical plan for Phases 1–8. It contains no site copy; every vis
 3. **No new build tooling.** Keep `node scripts/build.mjs` (no dependencies). Libraries are vendored into `src/assets/vendor/`. Dev-only tools (capture, still rendering) live in `tools/` with their own `package.json` so Netlify never installs them.
 4. **Strict CSP stays strict.** No inline scripts, no `unsafe-eval`, no third-party hosts. The only addition is `media-src 'self'`.
 5. **Honest content.** Status badges (Live / In build / Concept), no invented figures, no fake recordings, gold only in the "34" of the logo.
+6. **Every background is a deliberate brand choice.** No grid, graph-paper, blueprint or dot-matrix pattern anywhere, as a background or a texture (Nathan's design rule, 19 Oct 2026). The permitted backgrounds are listed in section 15.
+7. **No tracking, no cookies.** No analytics or third-party scripts are planned, so no cookie banner is needed. If Nathan wants analytics later, it is a separate decision (it changes the CSP and the privacy policy).
 
 ---
 
@@ -45,6 +47,7 @@ Items marked ✓ exist today; everything else is new.
    ├─ pages/
    │  ├─ home.html · about.html · contact.html · privacy.html · 404.html   ✓
    │  ├─ work/index.html               NEW: /work/ index (card list, status badges)
+   │  ├─ contact-thanks.html           NEW: /contact/thanks/ (Netlify Forms success page, noindex)
    │  ├─ work/fluid-process-uk.html · aoe-engineering.html · moss-and-memory.html   ✓
    │  └─ services/web-design.html · marketing.html · workflow-automation.html       ✓
    └─ assets/
@@ -57,7 +60,7 @@ Items marked ✓ exist today; everything else is new.
       ├─ fonts/                        ✓ Inter, Chakra Petch · NEW Space Grotesk 700, IBM Plex Mono 400/500 (+ OFL licences)
       ├─ js/
       │  ├─ motion.js                  ✓ shared eases/durations, reduced motion
-      │  ├─ main.js                    ✓ site-wide: nav, smooth scroll, reveal-on-scroll
+      │  ├─ main.js                    ✓ (today it only sets the `js` class on <html>; nav, reveal-on-scroll and the smooth.js hook are added in Phase 1)
       │  ├─ smooth.js                  Lenis ↔ ScrollTrigger wiring
       │  ├─ graph.js                   automation graph (SVG + GSAP), Home scene 4 + automation page
       │  └─ scene/                     ES modules, loaded only on pages with a scene
@@ -97,6 +100,8 @@ Items marked ✓ exist today; everything else is new.
 - Pages with a scene get `<script type="module" src="/assets/js/scene/boot.js"></script>` and a `data-scene` attribute on `<body>`. Pages without one load nothing 3D.
 - Classic deferred scripts on every page, in order: `gsap`, `ScrollTrigger`, `lenis`, `motion.js`, `smooth.js`, `main.js`.
 - New route `/work/` → `pages/work/index.html`, added to header (Work group link) and footer.
+- New route `/contact/thanks/` → `pages/contact-thanks.html` (Phase 6): the form's `action`, so a submission lands on our own page rather than Netlify's generic one. `noindex`, not in nav or sitemap.
+- **No-JS layout gate.** Scroll lengths for pinned scenes come only from ScrollTrigger's `pinSpacing` at runtime. `scenes.css` never sets pin heights in `vh`, and anything that only makes sense with motion (stacked service panels, horizontal gallery track) is scoped under `html.js` (the class `main.js` already sets). Without JS, every section flows as a normal document with no empty scroll gaps.
 - Phase 8 adds `sitemap.xml` and `robots.txt` generation from pages.json (404 excluded, noindex respected).
 - Header/footer: the typeset wordmark is replaced by `<img src="/assets/brand/34-automation-plate.svg" alt="34 Automation" width height>` inside the home link. `theme-color` becomes `#0C0E11`.
 
@@ -150,8 +155,9 @@ Scene (background: none; CSS supplies Graphite #0C0E11 + radial falloff)
 │   ├─ rimLight   SpotLight, Silver #CBD3DE, behind-right; animated on Arrival (sweep)
 │   └─ fill       HemisphereLight, very low
 ├─ dieRoot (Group)                                       ← idle drift (<2°/s) + pointer tilt (≤4°)
-│   └─ dieRoll (Group)                                   ← quarter-turn rolls in Services
-│       └─ dieMesh  RoundedBoxGeometry(1,1,1, segments 6, radius ~0.08), material groups:
+│   └─ dieYaw (Group)                                    ← turns the die to face the camera in Services (see below)
+│       └─ dieRoll (Group)                               ← quarter-turn rolls in Services, about dieYaw's local X
+│           └─ dieMesh  RoundedBoxGeometry(1,1,1, segments 6, radius ~0.08), material groups:
 │           ├─ group 0–5: flat faces   → graphite PBR (metalness 0.9, roughness 0.35–0.5)
 │           │                            + per-face normalMap / emissiveMap for engraved faces
 │           └─ group 6: bevels         → brushed silver (High: MeshPhysicalMaterial anisotropy)
@@ -171,6 +177,8 @@ Scene (background: none; CSS supplies Graphite #0C0E11 + radial falloff)
 | Left / Right | plain machined metal | never faces camera head-on |
 
 Each engraving texture is authored rotated so it reads upright at the moment its face reaches the front.
+
+**"Front" means facing the camera (fix, 20 Oct).** The camera orbits round Y while the die rolls about X, so a fixed world "+Z front" would end up facing away from the camera once the orbit passes 90°. To keep each rolled face square to the viewer, `dieYaw.rotation.y` follows the camera's azimuth during Services: over the first 15% of the pin it eases from 0 to the current azimuth (the die indexes round to present the "34" face, like a part seating on a fixture), then it tracks the azimuth exactly. Rolls are applied to `dieRoll` about its parent's local X, which is then always the camera's right-hand axis. Lights stay fixed in world space, so the continuing orbit still reads as light sliding across the metal. Drift and pointer tilt live on `dieRoot` and never fight the yaw or the rolls.
 
 **Material groups.** `RoundedBoxGeometry` is one geometry; at build time each triangle is assigned to a flat-face group (normal within 0.5° of an axis) or the bevel group. Done once at load, cheap.
 
@@ -206,6 +214,13 @@ Decided once in `tier.js` before any 3D loads; can drop (never rise) at runtime.
 
 Render loop: `renderer.setAnimationLoop` runs only while the canvas's section is in view (IntersectionObserver on the scene sections) and `document.visibilityState === 'visible'`; otherwise `setAnimationLoop(null)`.
 
+**Failure paths (added 20 Oct).** Every failure lands on the Low-tier stills, never on an empty hero:
+- `import('./stage.js')` rejects (network, parse error) → stay on the still, log once to the console, no retry.
+- `webglcontextlost` on the canvas → `preventDefault()`, stop the loop, show the stills; on `webglcontextrestored` stay on Low for the rest of the visit (no rebuild loop).
+- Shader compile failure on first render (checked with `renderer.compile` before the crossfade) → drop to Mid without the composer, then Low if that fails too.
+
+**Video limits.** At most two Work videos decode at once (the frames nearest the centre of view); the rest pause and show their poster. Every `<video>` is `muted playsinline loop preload="none"` with a poster, which iOS needs for inline autoplay and as a VideoTexture source. Videos are paused and their `src` released when the gallery leaves view by more than one viewport, to free GPU memory on phones.
+
 **Still-first on every tier.** The hero always paints the matching die still (AVIF, sized to viewport) as an `<img>` with fixed dimensions. High/Mid crossfade from the still to the live canvas once the first frame renders, so there is never an empty hero and no layout shift. The headline text, not the image, is the LCP target.
 
 ---
@@ -218,7 +233,7 @@ One ScrollTrigger per scene, scrubbed (`scrub: 1` on High, `scrub: true` on Mid)
 |---|---|---|---|---|---|
 | **0 Arrival** | (time-based, not scroll) 0–1.5 s after the first rendered frame | n/a | static, slightly wide | fades up from black; `rimLight` sweeps left→right across the bevels; "34" engraving glows 0→1 | text already visible from first paint; wordmark/eyebrow settle with `Motion.from` (opacity + 8 px), skipped under reduced motion |
 | **1 Hero** | 120 vh, no pin | `top top` → `bottom top` | dolly in ~15% and orbit 0°→+90° round Y (first half of the half-orbit) | still (drift only) | headline left (desktop) / below die (mobile) scrolls normally; `[PLACEHOLDER]` copy |
-| **2 Services** | 100 vh, **pinned for 300 vh** (3 steps) | `top top` → `+=300%` | orbit +90°→+180° across the pin (completes the half-orbit), die shifts to the right third on desktop | three quarter-turn rolls about X, each eased `power3.inOut` with a short hold (snap to step), active face emissive 0→1, previous 1→0 | one text panel per service slides in from the left (x −24 px, opacity) beside the die; each panel links to its service page; `aria-live` not used (content is static HTML in order) |
+| **2 Services** | 100 vh, **pinned for 300 vh** (3 steps) | `top top` → `+=300%` | orbit +90°→+180° across the pin (completes the half-orbit), die shifts to the right third on desktop | first 15%: `dieYaw` indexes round to face the camera ("34" face forward); then three quarter-turn rolls about the camera-facing X axis (section 5), each eased `power3.inOut` with a short hold (snap to step), active face emissive 0→1, previous 1→0 | one text panel per service slides in from the left (x −24 px, opacity) beside the die; each panel links to its service page; `aria-live` not used (content is static HTML in order) |
 | **3 Work** | 100 vh, **pinned for (n frames × 80 vh)** | `top top` → `+=n×80%` | camera holds; die fades out and scales down by 0.6 during the first 20% | hidden after 20% | 3D frames travel right→left (horizontal gallery); each frame tilts ≤6° toward the pointer; click / Enter on the matching HTML card opens the case study; videos play only while their frame is on screen |
 | **4 Automation, live** | 150 vh, no pin (canvas idle and paused) | `top 70%` → `bottom 30%` | n/a (render loop paused) | n/a | SVG graph in HTML: nodes light in Spark in sequence as a pulse travels along edges, scrubbed to scroll; generic labels only, no client data or results |
 | **5 Close** | auto height | `top 80%` | n/a | optional: die returns small, "34" face, idle | Nathan's photo slot, one line `[PLACEHOLDER]`, CTA button **"Start a conversation"** → `/contact/` |
@@ -265,7 +280,7 @@ frame-ancestors 'none'; base-uri 'self'; object-src 'none'; upgrade-insecure-req
 
 - `worker-src` not added (no worker planned). `blob:` not added (textures come from same-origin video and canvas).
 - GSAP and Lenis write styles through the CSSOM (`element.style`), which `style-src 'self'` allows; no `setAttribute('style')` and no `<style>` injection in our code. Verified per page in the smoke check.
-- Netlify Forms posts to the same origin, so `form-action 'self'` holds.
+- Netlify Forms posts to the same origin, so `form-action 'self'` holds. Spam control is Netlify's honeypot field (`netlify-honeypot`), not reCAPTCHA, which would need third-party script and frame hosts in the CSP. The form is static HTML in the built page so Netlify detects it at deploy.
 - New header rule: `/assets/vendor/*` and `/assets/fonts/*` → `Cache-Control: public, max-age=31536000, immutable` (file names carry versions). Other assets keep `max-age=3600`.
 - No domain or DNS change in any phase until Nathan's written sign-off.
 
@@ -324,7 +339,7 @@ frame-ancestors 'none'; base-uri 'self'; object-src 'none'; upgrade-insecure-req
 
 | Budget | Target |
 |---|---|
-| First paint (HTML + CSS + 2 preloaded fonts) | ≤ 150 KB transferred |
+| First paint (HTML + CSS + 2 preloaded fonts: Space Grotesk 700 and Inter variable, both WOFF2 Latin subset; IBM Plex Mono loads with `font-display: swap`, not preloaded) | ≤ 150 KB transferred |
 | Hero die still (mobile) | ≤ 60 KB AVIF |
 | 3D JS (three core + addons + scene modules) | ≤ 200 KB gzip, fetched after first paint |
 | Each Work video | ≤ 2.5 MB, `preload="none"`, fetched when its section is one viewport away |
@@ -358,6 +373,26 @@ frame-ancestors 'none'; base-uri 'self'; object-src 'none'; upgrade-insecure-req
 - no console errors and no CSP violations (listens for `securitypolicyviolation`);
 - no horizontal overflow at 375 px and 1440 px;
 - each tier forced via `?tier=` renders without errors; reduced motion emulated;
+- with JavaScript disabled, every page reads top to bottom with no empty pinned gaps (section 3, no-JS gate);
+- background rule (section 15): the built CSS contains no `repeating-linear-gradient`, `repeating-radial-gradient` or `background-size`-tiled pattern, and no background image other than the permitted list; the check fails the run if one appears;
 - screenshots of Home at 390 px and 1440 px saved to the scratchpad for a visual check (not committed).
 
 Preview after each push: https://34automation-preview.netlify.app (no custom domain).
+
+---
+
+## 15. Backgrounds (design rule, Nathan, 19 Oct 2026)
+
+Nathan finds the faint line or dot grid behind sections generic and thoughtless. None is used anywhere on the site: no grid, graph-paper, blueprint or dot-matrix pattern as a background, texture, divider fill or loading state, on any tier. Audit on 20 Oct: none exists in the code, this document, HERO.md or the showcase plan.
+
+The only backgrounds allowed, each tied to the brand playbook ("dark first, control panel, not a flyer"):
+
+| Surface | Background | Why it belongs to 34 |
+|---|---|---|
+| Page ground | Flat Graphite `#0C0E11` (`--color-bg`) | the playbook's page ground |
+| Home and service hero | Graphite with one soft radial falloff (lighter centre behind the die, to Graphite at the edges), as a single CSS `radial-gradient` token `--bg-falloff` | HERO.md "faint radial falloff"; it puts light where the object is, not a pattern |
+| Raised surfaces (cards, panels, header menu) | Flat Panel `#14171C` (`--color-surface`) with a hairline border | the playbook's raised surface and hairlines |
+| High tier only | Fine film grain inside the post-processing pass (random per-frame noise, very low amplitude, over the whole frame) | HERO.md film grain; industrial texture. It is random noise, never a regular or tiled dot pattern, and never a CSS background image |
+| Work frames | The project's own recording or poster | the work is the exhibit |
+
+Anything not in this table needs Nathan's say-so before it is built. Sections are separated by space and thin dividers, not by patterned bands.

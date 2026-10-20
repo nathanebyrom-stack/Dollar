@@ -3,6 +3,12 @@
 Keep the last 5 entries in full. Reduce older ones to one line under "Earlier".
 Each entry: date, what was done, what's next, blocker, preview link.
 
+## 20 Oct 2026 (session 4)
+- **Done:** Approval gate still unticked, so no site code. Gap review of ARCHITECTURE.md, fixes made: (1) camera/face bug: the camera's half-orbit ended behind the die while rolls brought faces to world +Z, so active faces would have pointed away from the viewer; added a `dieYaw` group that turns the die to face the camera during Services; (2) main.js was marked as already doing nav/smooth scroll/reveal; it only sets the `js` class, now stated; (3) no-JS gate so pinned scroll lengths never leave empty gaps without JS; (4) failure paths (import failure, WebGL context loss, shader compile) all fall back to stills; (5) video limits (two decoding at once, `muted playsinline`, release off-screen); (6) `/contact/thanks/` success route and honeypot spam control; (7) named the two preloaded fonts; (8) no analytics or cookies stated as a principle. **Design rule (Nathan, 19 Oct):** audited code, ARCHITECTURE.md, HERO.md and the plan for faded grid, dot, graph-paper or blueprint backgrounds: none found, nothing to remove. Added principle 6 and section 15 listing the only permitted backgrounds (flat Graphite, one radial falloff behind the die, flat Panel, High-tier random film grain, project media), plus a smoke-check rule that fails on repeating/tiled CSS patterns.
+- **Next:** waiting for Nathan to approve ARCHITECTURE.md (CHECKLIST step 3). Then Phase 1: brand swap and shell.
+- **Blocker:** Nathan's approval of ARCHITECTURE.md. Still open: Fluid Process UK recordings (sandbox can't reach the site), no headless WebKit here.
+- **Preview:** https://34automation-preview.netlify.app
+
 ## 19 Oct 2026 (session 3)
 - **Done:** Phase 0: ARCHITECTURE.md written (no site code). Covers file structure, build changes, module graph (with the CSP-safe rewrite of Three.js `'three'` imports instead of an inline import map), scene graph and die face layout, quality tiers with runtime drop, a scroll timeline per Home scene, capture and still-render pipelines, CSP (adds `media-src 'self'` only), a full asset list marking gaps, eight decisions for Nathan (D1–D8), performance budget and risks. Confirmed brand colours pre-checked for AA: all pass on Graphite and Panel (lowest 5.79:1).
 - **Next:** waiting for Nathan to approve ARCHITECTURE.md (CHECKLIST step 3). Nothing past Phase 0 starts until it is ticked. Then Phase 1: brand swap and shell.
