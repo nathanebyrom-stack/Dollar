@@ -143,6 +143,82 @@ const viewports = [['375px', { width: 375, height: 800 }], ['1440px', { width: 1
 for (const p of pages) for (const [label, vp] of viewports) await checkPage(p.route, vp, label);
 for (const p of pages) await checkPage(p.route, { width: 1440, height: 900 }, '1440px reduced-motion', { reducedMotion: true });
 
+// ---- The 3D scene on Home (ARCHITECTURE sections 5, 6, 14). Software WebGL is forced on so the tiers can be exercised.
+async function sceneChecks() {
+  const gl = await chromium.launch({ executablePath: findChromium(), args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+  const open = async (query, opts = {}) => {
+    const ctx = await gl.newContext({ viewport: opts.viewport || { width: 1440, height: 900 }, reducedMotion: opts.reducedMotion ? 'reduce' : 'no-preference', javaScriptEnabled: opts.js !== false });
+    const page = await ctx.newPage();
+    const errors = [];
+    const warnings = [];
+    page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); if (m.type() === 'warning' && /^Scene:/.test(m.text())) warnings.push(m.text()); });
+    page.on('pageerror', (e) => errors.push(`page error: ${e.message}`));
+    await page.addInitScript(() => { window.__csp = []; document.addEventListener('securitypolicyviolation', (e) => window.__csp.push(`${e.violatedDirective} ${e.blockedURI}`)); });
+    await page.goto(base + '/' + query, { waitUntil: 'load' });
+    return { ctx, page, errors, warnings };
+  };
+  const started = (page) => page.waitForFunction(() => window.__scene && window.__scene.frames > 3, null, { timeout: 40000 });
+  const report = async (name, t, cond, detail) => {
+    const bad = [...t.errors, ...(await t.page.evaluate(() => window.__csp)).map((v) => `CSP violation: ${v}`)];
+    if (cond && !bad.length) console.log(`  ok   scene: ${name}`);
+    else { fail(`scene: ${name}`); [detail, ...bad].filter(Boolean).forEach((m) => console.log(`       ${m}`)); }
+  };
+
+  for (const tier of ['high', 'mid']) {
+    for (const [label, viewport] of viewports) {
+      const t = await open(`?tier=${tier}`, { viewport });
+      await started(t.page);
+      await t.page.waitForTimeout(1500);
+      const r = await t.page.evaluate(() => ({
+        tier: document.documentElement.dataset.tier, on: document.documentElement.classList.contains('scene-on'),
+        canvas: !!document.querySelector('.scene-stage canvas.is-ready'), overflow: document.documentElement.scrollWidth > innerWidth,
+        h1: document.querySelectorAll('h1').length, pins: ScrollTrigger.getAll().filter((s) => s.pin).length,
+      }));
+      await report(`?tier=${tier} @ ${label} renders, scene-on, one pin`, t, r.tier === tier && r.on && r.canvas && !r.overflow && r.h1 === 1 && r.pins === 1, JSON.stringify(r));
+      await t.ctx.close();
+    }
+  }
+
+  { // Default detection on a software renderer, reduced motion and no-JS all give the plain page (Low).
+    for (const [name, opts, query] of [['software renderer defaults to Low', {}, ''], ['reduced motion is Low', { reducedMotion: true }, '']]) {
+      const t = await open(query, opts);
+      await t.page.waitForTimeout(2500);
+      const r = await t.page.evaluate(() => ({ tier: document.documentElement.dataset.tier, canvas: !!document.querySelector('.scene-stage canvas'), on: document.documentElement.classList.contains('scene-on'), h1: document.querySelectorAll('h1').length }));
+      await report(name, t, r.tier === 'low' && !r.canvas && !r.on && r.h1 === 1, JSON.stringify(r));
+      await t.ctx.close();
+    }
+    const t = await open('', { js: false });
+    const r = await t.page.evaluate(() => ({ on: document.documentElement.classList.contains('scene-on'), panels: [...document.querySelectorAll('.service-panel')].every((p) => getComputedStyle(p).visibility === 'visible' && getComputedStyle(p).opacity === '1'), links: document.querySelectorAll('.service-panel a').length, heroH: Math.round(document.getElementById('scene-hero').getBoundingClientRect().height), vh: innerHeight }));
+    await report('no JS: every service panel is visible and nothing is pinned', t, !r.on && r.panels && r.links === 3 && r.heroH <= r.vh * 1.01, JSON.stringify(r));
+    await t.ctx.close();
+  }
+
+  { // Failure paths land on the plain page without errors.
+    let t = await open('?tier=high');
+    await started(t.page);
+    await t.page.evaluate(() => window.__scene.renderer.getContext().getExtension('WEBGL_lose_context').loseContext());
+    await t.page.waitForTimeout(800);
+    let r = await t.page.evaluate(() => ({ tier: document.documentElement.dataset.tier, canvas: !!document.querySelector('.scene-stage canvas') }));
+    await report('lost WebGL context falls back to the plain page', t, r.tier === 'low' && !r.canvas && t.warnings.some((w) => /context lost/.test(w)), JSON.stringify({ ...r, warnings: t.warnings }));
+    await t.ctx.close();
+
+    t = await open('?tier=high');
+    await started(t.page);
+    await t.page.evaluate(() => window.__scene.dropTier('test'));
+    await t.page.waitForTimeout(800);
+    const frames = await t.page.evaluate(() => window.__scene.frames);
+    await t.page.waitForTimeout(800);
+    r = await t.page.evaluate((f) => ({ tier: document.documentElement.dataset.tier, rendering: window.__scene.frames > f, canvas: !!document.querySelector('.scene-stage canvas') }), frames);
+    await report('runtime drop High -> Mid keeps rendering', t, r.tier === 'mid' && r.rendering && r.canvas, JSON.stringify(r));
+    await t.page.evaluate(() => window.__scene.dropTier('test'));
+    r = await t.page.evaluate(() => ({ tier: document.documentElement.dataset.tier, canvas: !!document.querySelector('.scene-stage canvas') }));
+    await report('runtime drop Mid -> Low removes the canvas', t, r.tier === 'low' && !r.canvas, JSON.stringify(r));
+    await t.ctx.close();
+  }
+  await gl.close();
+}
+await sceneChecks();
+
 // Internal links.
 for (const [href, from] of links) {
   const path = href.split('#')[0];

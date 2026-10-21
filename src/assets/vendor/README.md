@@ -28,23 +28,23 @@ three-r186/
   addons/                   from examples/jsm, same sub-folders, same file names
     geometries/RoundedBoxGeometry.js
     environments/RoomEnvironment.js
-    postprocessing/  EffectComposer, RenderPass, UnrealBloomPass, ShaderPass, OutputPass (+ Pass, MaskPass)
-    shaders/         CopyShader, LuminosityHighPassShader, OutputShader
+    postprocessing/  EffectComposer, RenderPass, ShaderPass, OutputPass (+ Pass, MaskPass)
+    shaders/         CopyShader, OutputShader
 ```
 
 Only the addons the scene needs are included (ARCHITECTURE §4), plus the files those import. To add an addon, add its path to `ADDON_ENTRIES` in the script and rerun it.
 
 ## Size against the budget
 
-ARCHITECTURE §12 budgets the 3D JavaScript (Three core, addons and scene modules) at 200 KB gzip, fetched after first paint. Measured on 21 Oct 2026 for the 14 Three.js files together:
+ARCHITECTURE §12 budgets the 3D JavaScript (Three core, addons and scene modules) at 200 KB gzip, fetched after first paint. Measured on 21 Oct 2026, with the Phase 2 scene modules in place:
 
-| | KB |
-|---|---|
-| Raw (minified) | 771.7 |
-| gzip, level 9 | 200.3 |
-| Brotli, level 11 (best case) | 166.5 |
+| | raw KB | gzip-9 KB | Brotli-11 KB |
+|---|---|---|---|
+| Three.js and addons (12 files) | 762.1 | 197.5 | 164.1 |
+| Scene modules, `assets/js/scene/` (9 files) | 37.5 | 15.6 | 13.4 |
+| **All 3D JavaScript** | 799.6 | **213.1** | **177.5** |
 
-So Three.js and its addons alone already use the whole 200 KB if the transfer is gzip, and leave about 33 KB for scene code if it is Brotli at level 11. Netlify serves Brotli, but its compression level is not documented, so the real transfer sits somewhere between the two. This is not settled. Before the scene modules go in, measure the transfer from the deployed preview (`curl -sH 'accept-encoding: br' -o /dev/null -w '%{size_download}'` on each file), and if it is tight, build a tree-shaken Three.js bundle holding only the classes the scene uses (still vendored and committed, still no runtime bundler).
+So the total is 13 KB over budget if the transfer is gzip and 22 KB under if it is Brotli at its best level. Netlify serves Brotli, but its compression level is not documented, so the real transfer sits between the two and this is not settled. Measure it from the deployed preview (`curl -sH 'accept-encoding: br' -o /dev/null -w '%{size_download}'` on each file). If it is over, build a tree-shaken Three.js bundle holding only the classes the scene uses (still vendored and committed, still no runtime bundler). The bloom addon was dropped in Phase 2 (the engraving glow is baked into the emissive map), which already saved about 2 KB gzip.
 
 ## Cache
 

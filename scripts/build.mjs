@@ -39,9 +39,10 @@ ${fill(head, {
   description: escapeAttr(page.description),
   canonical: site.url + (page.route === '/404.html' ? '/' : page.route),
   robots: page.noindex ? '<meta name="robots" content="noindex">\n' : '',
+  scenes: page.scene ? '<link rel="stylesheet" href="/assets/css/scenes.css">\n' : '',
 })}</head>
-<body data-page="${page.nav || 'none'}">
-${nav}
+<body data-page="${page.nav || 'none'}"${page.scene ? ` data-scene="${page.scene}"` : ''}>
+${page.scene ? '<div class="scene-stage" aria-hidden="true"></div>\n' : ''}${nav}
 <main id="main" tabindex="-1">
 ${body}</main>
 ${fill(footer, { year })}<script src="/assets/vendor/gsap-3.13.0.min.js" defer></script>
@@ -50,6 +51,7 @@ ${fill(footer, { year })}<script src="/assets/vendor/gsap-3.13.0.min.js" defer><
 <script src="/assets/js/motion.js" defer></script>
 <script src="/assets/js/smooth.js" defer></script>
 <script src="/assets/js/main.js" defer></script>
+${page.scene ? '<script type="module" src="/assets/js/scene/boot.js"></script>\n' : ''}
 </body>
 </html>
 `;

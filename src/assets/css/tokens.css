@@ -172,9 +172,22 @@
   --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);       /* GSAP: expo.out */
   --stagger: 0.08s;
 
+  /* ---- Page background: one soft radial falloff, lighter behind the die (ARCHITECTURE section 15) ----
+     The 3D High tier redraws exactly this gradient in its final shader, reading these variables. */
+  --falloff-x: 68%;
+  --falloff-y: 42%;
+  --falloff-rx: 70%;
+  --falloff-ry: 62%;
+  --bg-falloff: radial-gradient(ellipse var(--falloff-rx) var(--falloff-ry) at var(--falloff-x) var(--falloff-y), var(--graphite-800) 0%, var(--graphite-900) 100%);
+
   --z-header: 50;
   --z-menu: 60;
   --z-skip: 100;
+}
+
+@media (max-width: 899px) {
+  /* Phones: the die sits mid-screen below the header, the text below it. */
+  :root { --falloff-x: 50%; --falloff-y: 46%; }
 }
 
 @media (prefers-reduced-motion: reduce) {

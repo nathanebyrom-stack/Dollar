@@ -4,7 +4,7 @@
     "url": "https://www.34automation.com"
   },
   "pages": [
-    { "route": "/", "source": "pages/home.html", "title": "34 Automation", "description": "[PLACEHOLDER: home meta description — final copy pending humanize pass]", "nav": "home" },
+    { "route": "/", "source": "pages/home.html", "title": "34 Automation", "description": "[PLACEHOLDER: home meta description — final copy pending humanize pass]", "nav": "home", "scene": "home" },
     { "route": "/about/", "source": "pages/about.html", "title": "About | 34 Automation", "description": "[PLACEHOLDER: about meta description]", "nav": "about" },
     { "route": "/contact/", "source": "pages/contact.html", "title": "Contact | 34 Automation", "description": "[PLACEHOLDER: contact meta description]", "nav": "contact" },
     { "route": "/services/web-design/", "source": "pages/services/web-design.html", "title": "Web design | 34 Automation", "description": "[PLACEHOLDER: web design meta description]", "nav": "services" },

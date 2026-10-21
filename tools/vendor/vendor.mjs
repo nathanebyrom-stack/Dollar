@@ -25,7 +25,6 @@ const ADDON_ENTRIES = [
   'environments/RoomEnvironment.js',
   'postprocessing/EffectComposer.js',
   'postprocessing/RenderPass.js',
-  'postprocessing/UnrealBloomPass.js',
   'postprocessing/ShaderPass.js',
   'postprocessing/OutputPass.js',
 ];

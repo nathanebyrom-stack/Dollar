@@ -1,0 +1,36 @@
+/* Scene pages (<body data-scene>): the fixed 3D layer behind the page text, and the scroll sections that sit on it.
+   Loaded only on pages that have a scene (see scripts/build.mjs). Values come from tokens.css.
+
+   No-JS gate (ARCHITECTURE section 3): anything that only makes sense with motion is scoped under html.scene-on,
+   which stage.js sets once the first 3D frame has rendered. Without JS or WebGL every section is ordinary flowing
+   content: no pin lengths, no stacked panels, no empty scroll gaps. Pin distances come from ScrollTrigger, never CSS. */
+
+/* The stage: one fixed layer. It carries the page's single permitted background (the radial falloff, tokens.css);
+   the canvas sits on top and fades in once its first frame is ready. */
+.scene-stage { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: var(--bg-falloff); }
+.scene-stage canvas { display: block; width: 100%; height: 100%; opacity: 0; transition: opacity var(--dur-slow) var(--ease-out); }
+.scene-stage canvas.is-ready { opacity: 1; }
+
+/* Page content sits above the stage. */
+body[data-scene] main, body[data-scene] .site-footer { position: relative; z-index: 1; }
+
+/* Scene 1: Hero. Text left on desktop, below the die on phones. Anchored to the top so that growing the section
+   when the scene starts (below) never moves the text. */
+.scene-hero { min-height: 100svh; place-items: start; align-content: start; text-align: left; border-bottom: 0; padding-top: clamp(6rem, 24vh, 13rem); }
+.scene-hero__text { max-width: 30rem; }
+@media (min-width: 900px) and (max-width: 1279px) { .scene-hero__text { max-width: 40vw; } }
+@media (max-width: 899px) { .scene-hero { padding-top: 66svh; } }
+
+.scene-services { border-bottom: 0; }
+.service-panels { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-5); max-width: 28rem; }
+.service-panel h3 { font-size: var(--text-xl); margin: 0 0 var(--space-2); }
+.service-panel h3 a { text-decoration: none; }
+.service-panel h3 a:hover { text-decoration: underline; }
+.service-panel p { margin: 0; }
+
+/* Scene 2: Services, pinned by ScrollTrigger. One panel at a time, stacked in the same cell. */
+.scene-on .scene-hero { min-height: 120svh; }
+.scene-on .scene-services { min-height: 100svh; display: grid; align-content: center; }
+.scene-on .service-panels { gap: 0; }
+.scene-on .service-panel { grid-area: 1 / 1; visibility: hidden; opacity: 0; }
+@media (max-width: 899px) { .scene-on .scene-services { align-content: end; padding-bottom: var(--space-8); } }

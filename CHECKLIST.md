@@ -27,8 +27,8 @@ Steps 3 onwards replaced by Jenny, 18 Oct 2026, to follow DOLLAR-SHOWCASE-PLAN.m
 - [x] Smooth scroll wired, respecting reduced motion
 
 ## 5. Phase 2: 3D core (per HERO.md)
-- [ ] Procedural die, materials, lighting, environment
-- [ ] Scroll camera and Services face rolls
+- [x] Procedural die, materials, lighting, environment
+- [x] Scroll camera and Services face rolls
 - [ ] Quality tiers (High / Mid / Low) and no-WebGL path
 - [ ] Reduced-motion path with pre-rendered stills
 

@@ -1,6 +1,7 @@
 // Builds the favicon set from the "34" outlines in the logo plate (D6: silver "34" on Graphite, no gold).
 //   node tools/brand/make-favicon.mjs
-// Writes to src/assets/brand/: favicon.svg, favicon-32.png, apple-touch-icon.png.
+// Writes to src/assets/brand/: favicon.svg, favicon-32.png, apple-touch-icon.png, and mark-34.svg (the bare
+// "34" in flat Silver, tight viewBox, used by the die's front-face engraving).
 // The glyph path is read from 34-automation-plate.svg (its first <path>, the gold "34"); the gradient
 // and stroke are dropped so only flat Silver is used. Needs a Chromium (see tools/check/smoke.mjs).
 import { readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
@@ -52,6 +53,11 @@ const tile = (rx) => {
 
 writeFileSync(join(brand, 'favicon.svg'), tile(12));
 
+const r = (n) => n.toFixed(2);
+writeFileSync(join(brand, 'mark-34.svg'),
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${r(box.x)} ${r(box.y)} ${r(box.w)} ${r(box.h)}" width="${Math.round(box.w * 4)}" height="${Math.round(box.h * 4)}" fill="${SILVER}">\n` +
+  `<title>34</title>\n<path d="${d}"/>\n</svg>\n`);
+
 async function png(svg, size, file, transparent) {
   const p = await browser.newPage({ viewport: { width: size, height: size }, deviceScaleFactor: 1 });
   await p.setContent(`<body style="margin:0;background:transparent"><img src="data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}" width="${size}" height="${size}" style="display:block"></body>`);
@@ -63,4 +69,4 @@ await png(tile(12), 32, 'favicon-32.png', true);
 await png(tile(0), 180, 'apple-touch-icon.png', false); // iOS rounds the corners itself
 
 await browser.close();
-console.log('wrote favicon.svg, favicon-32.png, apple-touch-icon.png to', brand);
+console.log('wrote favicon.svg, favicon-32.png, apple-touch-icon.png, mark-34.svg to', brand);
