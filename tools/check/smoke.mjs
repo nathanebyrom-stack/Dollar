@@ -233,7 +233,7 @@ async function sceneChecks() {
     playing: [...document.querySelectorAll('.work-card__video')].filter((v) => !v.paused && v.getAttribute('src')).length,
     overflow: document.documentElement.scrollWidth > innerWidth,
   }));
-  const toGallery = async (page, f) => { await page.evaluate((y) => scrollTo(0, y), await pinAt(page, 1.02)); await page.waitForFunction(() => window.__scene && window.__scene.gallery && document.documentElement.classList.contains('gallery-3d'), null, { timeout: 30000 }); await page.waitForTimeout(500);
+  const toGallery = async (page, f) => { await page.waitForFunction(() => ScrollTrigger.getAll().some((s) => s.pin)); await page.evaluate((y) => scrollTo(0, y), await pinAt(page, 1.02)); await page.waitForFunction(() => window.__scene && window.__scene.gallery && document.documentElement.classList.contains('gallery-3d'), null, { timeout: 30000 }); await page.waitForTimeout(500);
     await page.evaluate((f) => { const s = ScrollTrigger.getAll().filter((t) => t.pin)[1]; scrollTo(0, s.start + (s.end - s.start) * f); }, f); await page.waitForTimeout(1500); };
 
   for (const tier of ['high', 'mid']) {
@@ -241,7 +241,12 @@ async function sceneChecks() {
     await started(t.page);
     await toGallery(t.page, 0.5);
     let r = await cardState(t.page);
-    await report(`Work gallery (${tier}): pinned, three frames, no horizontal overflow, at most two videos playing`, t, r.gallery && r.pins === 2 && r.frames === 3 && !r.overflow && r.playing <= 2 && r.mode === '', JSON.stringify(r));
+    await report(`Work gallery (${tier}): pinned, three frames, at most two videos playing`, t, r.gallery && r.pins === 2 && r.frames === 3 && r.playing <= 2 && r.mode === '', JSON.stringify(r));
+    // The row of cards is wider than the screen, so check for page overflow at the start, middle and end of the pin
+    // (it once showed only at the ends: a grid column growing with the row).
+    const widths = [];
+    for (const f of [0, 0.5, 1]) { await toGallery(t.page, f); widths.push(await t.page.evaluate(() => document.documentElement.scrollWidth - innerWidth)); }
+    await report(`Work gallery (${tier}): no horizontal overflow at the start, middle and end of the pin`, t, widths.every((w) => w <= 0), `scrollWidth - innerWidth at 0 / 0.5 / 1: ${widths.join(' / ')}`);
     await toGallery(t.page, 1);
     r = await t.page.evaluate(() => ({ moss: (() => { const v = document.querySelector('.work-card[data-project="moss-and-memory"] .work-card__video'); const b = v.getBoundingClientRect(); return { playing: !v.paused && !!v.getAttribute('src'), onScreen: b.right > 0 && b.left < innerWidth }; })(), fpuk: (() => { const v = document.querySelector('.work-card[data-project="fluid-process-uk"] .work-card__video'); return !v; })() }));
     await report(`Work gallery (${tier}): the Moss & Memory recording plays while its card is on screen`, t, r.moss.onScreen && r.moss.playing, JSON.stringify(r));

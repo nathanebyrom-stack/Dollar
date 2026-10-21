@@ -76,6 +76,10 @@ html.gallery-3d body { overflow-x: clip; } /* the travelling row is wider than t
   --edge: max(var(--gutter), calc((100vw - var(--max-width)) / 2 + var(--gutter)));
   width: 100vw; margin-left: calc(50% - 50vw); min-height: 100svh; display: grid; align-content: center;
   padding: var(--space-6) var(--gutter) var(--space-6) var(--edge); border-bottom: 0;
+  /* The row of cards is deliberately wider than the screen. A grid column grows to fit its widest content, which
+     would stretch the whole section (and its heading) to the row's width, so pin the column to the section's own
+     width, and clip what travels past it so it never counts as page overflow. */
+  grid-template-columns: minmax(0, 1fr); overflow-x: clip;
 }
 .gallery-3d .scene-work .work-list { display: flex; flex-wrap: nowrap; gap: var(--space-8); margin-top: var(--space-5); will-change: transform; }
 .gallery-3d .work-card { flex: 0 0 min(42vw, 38rem); gap: var(--space-6); padding: 0; background: transparent; border-color: transparent; box-shadow: none; } /* the gap clears the frame's bezel */
