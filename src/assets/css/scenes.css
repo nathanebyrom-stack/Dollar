@@ -58,7 +58,7 @@ body[data-scene] main, body[data-scene] .site-footer { position: relative; z-ind
 .service-panel p { margin: 0; }
 
 /* Scene 2: Services, pinned by ScrollTrigger. One panel at a time, stacked in the same cell. */
-.scene-on .scene-hero { min-height: 120svh; }
+.scene-on .scene-hero--home { min-height: 120svh; }
 .scene-on .scene-services { min-height: 100svh; display: grid; align-content: center; }
 .scene-on .service-panels { gap: 0; }
 .scene-on .service-panel { grid-area: 1 / 1; visibility: hidden; opacity: 0; }

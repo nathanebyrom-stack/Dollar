@@ -48,9 +48,23 @@ export function start({ scene }) {
 
   html.classList.remove('scene-live');
   html.classList.add('scene-still');
-  ensureStills(frame);
 
-  if (scene !== 'home') return { stop() { html.classList.remove('scene-still'); } };
+  if (scene !== 'home') {
+    // A service page: its own still is already in the page (the die's face for that service), so nothing is fetched or
+    // stepped. The die just fades away as the hero scrolls out, with or without pinning, so no text sits over it.
+    const hero = document.getElementById('scene-hero');
+    let io = null;
+    if (hero) {
+      // The root's top edge sits 40% down the screen, so the hero stops "intersecting" once its bottom passes that line.
+      io = new IntersectionObserver((entries) => {
+        frame.classList.toggle('is-away', entries.some((e) => !e.isIntersecting && e.boundingClientRect.bottom <= innerHeight * 0.4 + 1));
+      }, { threshold: [0, 0.01], rootMargin: '-40% 0px 0px 0px' });
+      io.observe(hero);
+    }
+    return { stop() { if (io) io.disconnect(); html.classList.remove('scene-still'); } };
+  }
+
+  ensureStills(frame);
 
   const stills = new Map([...frame.querySelectorAll('.die-still')].map((el) => [el.dataset.face, el]));
   const hero = document.getElementById('scene-hero');

@@ -46,3 +46,25 @@ html[data-videos="tap"] .work-card__media.is-playing .work-card__play { display:
 .badge--live { color: var(--color-text-strong); }
 .badge--in-build { color: var(--color-text); }
 .badge--concept { color: var(--color-text-muted); border-style: dashed; }
+
+/* ---- Automation graph (decision D4: SVG + GSAP). Markup is generated at build time from assets/graph.json. ----
+   The default state is every node and edge lit: that is what no-JS and reduced motion see. graph.js dims it and lights
+   it node by node as the section scrolls (it adds html.graph-on, which gives the section its scroll length). A wide
+   layout and a tall one are both in the page; CSS shows the one that fits. No gold anywhere. */
+.graph-figure { margin-top: var(--space-6); }
+.graph { display: block; width: 100%; height: auto; max-width: 62rem; overflow: visible; }
+.graph--tall { display: none; max-width: 24rem; margin-inline: auto; }
+@media (max-width: 719px) { .graph--wide { display: none; } .graph--tall { display: block; } }
+
+.graph__line { fill: none; stroke: var(--color-border); stroke-width: 1.5; }
+.graph__line--lit { stroke: var(--color-text-strong); stroke-width: 1.75; }
+.graph__pulse { fill: none; stroke: var(--color-text-strong); stroke-width: 3.5; stroke-linecap: round; opacity: 0; }
+.graph__box { fill: var(--color-surface); stroke: var(--color-border); stroke-width: 1.5; }
+.graph__box--lit { fill: var(--color-surface-2); stroke: var(--color-text-strong); }
+.graph__label { fill: var(--color-text-muted); font: var(--weight-medium) 12px/1 var(--font-mono); letter-spacing: var(--tracking-eyebrow); text-transform: uppercase; text-anchor: middle; }
+.graph__label--lit { fill: var(--color-text-strong); }
+.graph__lit { filter: drop-shadow(0 0 6px var(--color-glow)); }
+
+/* While it animates, the section is taller than the screen and the graph stays in view as you scroll through it. */
+html.graph-on .scene-graph { min-height: 150svh; }
+html.graph-on .scene-graph__sticky { position: sticky; top: 12svh; }

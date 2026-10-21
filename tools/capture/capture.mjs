@@ -2,6 +2,7 @@
 //   cd tools && npm install && node capture/capture.mjs fluid-process-uk
 //   node capture/capture.mjs fluid-process-uk --viewports desktop       just one size
 //   node capture/capture.mjs test --url http://127.0.0.1:8080/ --out /some/folder --no-manifest   try it on any URL
+//   --allow-badge   record even if Netlify's "Powered by Netlify" badge is on the page
 // For each viewport (projects.json): opens the page in Chromium with video recording, holds 1 s, scrolls smoothly from
 // top to bottom over scrollSeconds, holds 1 s. ffmpeg then trims to that, encodes MP4 (H.264, faststart) and WebM
 // (VP9) at 30 fps with no audio, each at or under 2.5 MB (it raises the CRF until the file fits), and a JPG and AVIF
@@ -9,7 +10,7 @@
 // project's media entry in src/assets/work/projects.json is updated so the gallery picks the clips up.
 //
 // It never clicks anything on the site. If a cookie or consent banner is showing it stops and says so: dismissing one
-// on the site owner's behalf is not its call. Needs ffmpeg on the PATH (brew install ffmpeg). Never fakes a recording.
+// on the site owner's behalf is not its call. It also stops if Netlify's "Powered by Netlify" badge is on the page. Needs ffmpeg on the PATH (brew install ffmpeg). Never fakes a recording.
 import { spawnSync } from 'node:child_process';
 import { readFileSync, writeFileSync, mkdirSync, mkdtempSync, existsSync, readdirSync, statSync, appendFileSync, rmSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
@@ -115,7 +116,15 @@ try {
     const page = await context.newPage();
     await page.goto(project.url, { waitUntil: 'networkidle', timeout: 60000 });
     await page.evaluate(() => document.fonts.ready);
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(2500); // hosting badges and consent banners are injected by scripts, a moment after load
+
+    // Netlify's "Powered by Netlify" badge: it would be in the footage, and on a phone it can cover a button.
+    if (!has('allow-badge') && await page.evaluate(() => !!document.getElementById('nl-badge-frame'))) {
+      await context.close();
+      console.error(`\nStopped: Netlify's "Powered by Netlify" badge is showing on ${project.url}, so it would be in the footage (and on a phone it can cover a button).\nTurn it off for that site in Netlify, check the live page, and run again. To record with it anyway, add --allow-badge.`);
+      process.exitCode = 2;
+      break;
+    }
 
     const banners = await page.evaluate(bannerCheck);
     if (banners.length) {

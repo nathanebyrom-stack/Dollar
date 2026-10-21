@@ -1,0 +1,116 @@
+{
+  "title": "A generic automated workflow",
+  "description": "A trigger starts the workflow, a filter checks it, two actions run, and an output completes it.",
+  "nodes": [
+    {
+      "id": "trigger",
+      "label": "Trigger"
+    },
+    {
+      "id": "filter",
+      "label": "Filter"
+    },
+    {
+      "id": "action-a",
+      "label": "Action"
+    },
+    {
+      "id": "action-b",
+      "label": "Action"
+    },
+    {
+      "id": "output",
+      "label": "Output"
+    }
+  ],
+  "edges": [
+    [
+      "trigger",
+      "filter"
+    ],
+    [
+      "filter",
+      "action-a"
+    ],
+    [
+      "filter",
+      "action-b"
+    ],
+    [
+      "action-a",
+      "output"
+    ],
+    [
+      "action-b",
+      "output"
+    ]
+  ],
+  "layouts": {
+    "wide": {
+      "size": [
+        960,
+        320
+      ],
+      "direction": "x",
+      "node": [
+        160,
+        56
+      ],
+      "pos": {
+        "trigger": [
+          20,
+          132
+        ],
+        "filter": [
+          270,
+          132
+        ],
+        "action-a": [
+          540,
+          36
+        ],
+        "action-b": [
+          540,
+          228
+        ],
+        "output": [
+          780,
+          132
+        ]
+      }
+    },
+    "tall": {
+      "size": [
+        360,
+        500
+      ],
+      "direction": "y",
+      "node": [
+        160,
+        56
+      ],
+      "pos": {
+        "trigger": [
+          100,
+          10
+        ],
+        "filter": [
+          100,
+          130
+        ],
+        "action-a": [
+          10,
+          270
+        ],
+        "action-b": [
+          190,
+          270
+        ],
+        "output": [
+          100,
+          420
+        ]
+      }
+    }
+  }
+}

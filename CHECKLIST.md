@@ -38,10 +38,10 @@ Steps 3 onwards replaced by Jenny, 18 Oct 2026, to follow DOLLAR-SHOWCASE-PLAN.m
 - [x] Plain card-list fallback with status badges
 
 ## 7. Phase 4: Services and automation graph
-- [ ] Web design page
-- [ ] Marketing page
-- [ ] Workflow automation page
-- [ ] Animated workflow graph (Home scene 4)
+- [x] Web design page
+- [x] Marketing page
+- [x] Workflow automation page
+- [x] Animated workflow graph (Home scene 4)
 
 ## 8. Phase 5: Case studies
 - [ ] Case-study template

@@ -81,6 +81,13 @@ export async function start({ tier: initialTier, forced, scene: sceneName, still
     // and the Arrival is the rim light sweeping across the bevels, not a fade up from black.
     exposure: 1, rim: 0.55, glow: { front: 1, top: 0, back: 0, bottom: 0 },
   };
+  // A service page rests on that service's own face (no rolls): the same state a still is drawn from.
+  const SERVICE_FACES = { 'service:web': 'web-design', 'service:marketing': 'marketing', 'service:automation': 'workflow-automation' };
+  const serviceSpec = STILLS[SERVICE_FACES[sceneName]] || null;
+  if (serviceSpec) {
+    state.yawMix = 1; state.roll = serviceSpec.roll;
+    state.glow = { front: 0, top: 0, back: 0, bottom: 0, [serviceSpec.face]: 1 };
+  }
   if (stillSpec) { // one face, square-on, lit as at rest
     state.rim = 1; state.yawMix = 1; state.roll = stillSpec.roll;
     state.glow = { front: 0, top: 0, back: 0, bottom: 0, [stillSpec.face]: 1 };
@@ -306,6 +313,11 @@ export async function start({ tier: initialTier, forced, scene: sceneName, still
     gsap.timeline({ defaults: { ease: 'power2.out' } })
       .to(state, { rim: 1, duration: 1.8, ease: 'power2.inOut' }, 0)
       .call(() => { if (!forced) guard = { elapsed: 0, total: 0, n: 0 }; }, null, 1.5);
+    if (serviceSpec) {
+      import('./timeline-service.js')
+        .then((m) => { if (!disposed) timelines = m.buildServiceTimeline({ state, tier }); })
+        .catch((err) => console.error('Scene: scroll timelines failed to build', err));
+    }
     if (sceneName === 'home') {
       watchGallery();
       import('./timeline-home.js')

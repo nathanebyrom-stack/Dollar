@@ -317,6 +317,79 @@ async function sceneChecks() {
     await t.ctx.close();
   }
 
+  // ---- Service pages and the automation graph (Phase 4) ----
+  const SERVICES = [['services/web-design/', 'web-design', 'top', 1], ['services/marketing/', 'marketing', 'back', 2], ['services/workflow-automation/', 'workflow-automation', 'bottom', 3]];
+
+  for (const [route, face, glowKey, roll] of SERVICES) {
+    { // Live: the die rests on this service's face (no rolls, no pins) and fades as the hero leaves.
+      const t = await open(`${route}?tier=high`);
+      await started(t.page);
+      await t.page.waitForTimeout(800);
+      const at = await t.page.evaluate(() => ({ roll: window.__scene.state.roll, glow: window.__scene.state.glow, yawMix: window.__scene.state.yawMix, pins: ScrollTrigger.getAll().filter((x) => x.pin).length, live: document.documentElement.classList.contains('scene-live') }));
+      await t.page.evaluate(() => scrollTo(0, 1400));
+      await t.page.waitForTimeout(1800);
+      const gone = await t.page.evaluate(() => window.__scene.state.fade);
+      await report(`${route} (live): rests on the ${face} face, no pins, the die fades as the hero leaves`, t, at.roll === roll && at.glow[glowKey] === 1 && at.yawMix === 1 && at.pins === 0 && at.live && gone > 0.95, JSON.stringify({ ...at, gone }));
+      await t.ctx.close();
+    }
+    for (const [name, opts] of [['Low', {}], ['reduced motion', { reducedMotion: true }]]) {
+      const t = await open(route, opts);
+      const fetched = [];
+      t.page.on('request', (rq) => { const m = /\/die-([a-z0-9-]+)-\d+\./.exec(rq.url()); if (m && m[1] !== face) fetched.push(m[1]); });
+      await t.page.waitForFunction(() => document.documentElement.classList.contains('scene-still'), null, { timeout: 15000 });
+      await t.page.reload({ waitUntil: 'load' });
+      await t.page.waitForFunction(() => document.documentElement.classList.contains('scene-still'), null, { timeout: 15000 });
+      const r = await t.page.evaluate(() => ({ stills: [...document.querySelectorAll('.die-still')].map((e) => e.dataset.face), active: [...document.querySelectorAll('.die-still.is-active')].map((e) => e.dataset.face), canvas: !!document.querySelector('.scene-stage canvas'), h1: document.querySelectorAll('h1').length }));
+      await t.page.evaluate(() => scrollTo(0, 1400));
+      await t.page.waitForTimeout(1200);
+      const away = await t.page.evaluate(() => document.querySelector('.die-frame').classList.contains('is-away'));
+      await report(`${route} (${name}): only the ${face} still, no canvas, no other face fetched, fades away after the hero`, t, r.stills.join() === face && r.active.join() === face && !r.canvas && fetched.length === 0 && away && r.h1 === 1, JSON.stringify({ ...r, away, fetched }));
+      await t.ctx.close();
+    }
+  }
+
+  // The automation graph: generated HTML, fully lit by default; animated by graph.js only when motion is allowed.
+  const graphState = (page) => page.evaluate(() => {
+    const visible = [...document.querySelectorAll('.graph')].filter((g) => getComputedStyle(g).display !== 'none');
+    const svg = visible[0];
+    return { svgs: document.querySelectorAll('.graph').length, visible: visible.length, kind: svg ? (svg.classList.contains('graph--tall') ? 'tall' : 'wide') : null,
+      lit: svg ? [...svg.querySelectorAll('.graph__lit')].map((e) => (+getComputedStyle(e).opacity > 0.5 ? 1 : 0)).join('') : '',
+      on: document.documentElement.classList.contains('graph-on'), triggers: ScrollTrigger.getAll().filter((x) => x.trigger && x.trigger.id === 'scene-graph').length,
+      // Is the graph actually on screen? (Its scroll range once pointed at the wrong place: it lit up while off screen.)
+      inView: svg ? (() => { const r = svg.getBoundingClientRect(); return r.top >= -2 && r.bottom <= innerHeight + 2 && r.height > 0; })() : false,
+      overflow: document.documentElement.scrollWidth > innerWidth };
+  });
+  const graphAt = (page, f) => page.evaluate((f) => { const x = ScrollTrigger.getAll().find((t) => t.trigger && t.trigger.id === 'scene-graph'); scrollTo(0, x.start + (x.end - x.start) * f); }, f);
+
+  for (const route of ['', 'services/workflow-automation/']) {
+    const label = route || 'Home';
+    { const t = await open(route, { js: false });
+      const r = await t.page.evaluate(() => ({ svgs: document.querySelectorAll('.graph').length, nodes: document.querySelectorAll('.graph--wide .graph__node').length, lit: [...document.querySelectorAll('.graph--wide .graph__lit')].map((e) => +getComputedStyle(e).opacity).join(''), on: document.documentElement.classList.contains('graph-on'), role: document.querySelector('.graph--wide').getAttribute('role'), title: document.querySelector('.graph--wide title').textContent }));
+      await report(`${label}: graph is in the page with no JS, every node lit, with a text alternative`, t, r.svgs === 2 && r.nodes === 5 && r.lit === '11111' && !r.on && r.role === 'img' && r.title.length > 0, JSON.stringify(r));
+      await t.ctx.close(); }
+    { const t = await open(route);
+      await t.page.waitForFunction(() => document.documentElement.classList.contains('graph-on'), null, { timeout: 15000 });
+      await t.page.waitForTimeout(500);
+      await graphAt(t.page, 0); await t.page.waitForTimeout(900); const start = await graphState(t.page);
+      await graphAt(t.page, 0.5); await t.page.waitForTimeout(900); const mid = await graphState(t.page);
+      await graphAt(t.page, 1); await t.page.waitForTimeout(900); const end = await graphState(t.page);
+      const count = (x) => x.lit.split('').filter((c) => c === '1').length;
+      await report(`${label}: graph lights node by node as you scroll (wide layout), none at the start, all at the end, one layout shown`, t, start.kind === 'wide' && start.visible === 1 && count(start) === 0 && count(mid) > 0 && count(mid) < 5 && count(end) === 5 && !end.overflow && start.inView && mid.inView && end.inView, JSON.stringify({ start, mid, end }));
+      await t.ctx.close(); }
+    { const t = await open(route, { reducedMotion: true });
+      await t.page.waitForTimeout(1500);
+      const r = await graphState(t.page);
+      await report(`${label}: under reduced motion the graph is static and fully lit`, t, r.lit === '11111' && !r.on && r.triggers === 0, JSON.stringify(r));
+      await t.ctx.close(); }
+    { const t = await open(route, { viewport: { width: 375, height: 800 } });
+      await t.page.waitForFunction(() => document.documentElement.classList.contains('graph-on'), null, { timeout: 15000 });
+      await t.page.waitForTimeout(500);
+      await graphAt(t.page, 0); await t.page.waitForTimeout(900); const start = await graphState(t.page);
+      await graphAt(t.page, 1); await t.page.waitForTimeout(900); const end = await graphState(t.page);
+      await report(`${label}: on a phone the tall layout is shown, animates, and does not overflow`, t, start.kind === 'tall' && start.visible === 1 && start.lit === '00000' && end.lit === '11111' && !end.overflow && start.inView && end.inView, JSON.stringify({ start, end }));
+      await t.ctx.close(); }
+  }
+
   { // ?tier=low forced, and a browser with no WebGL at all: both are the stills path, with no console errors.
     const t = await open('?tier=low');
     await t.page.waitForFunction(() => document.documentElement.classList.contains('scene-still'), null, { timeout: 15000 });
