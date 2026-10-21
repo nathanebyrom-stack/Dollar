@@ -19,7 +19,7 @@ Steps 3 onwards replaced by Jenny, 18 Oct 2026, to follow DOLLAR-SHOWCASE-PLAN.m
 - [x] **Nathan approves ARCHITECTURE.md** (approved 20 Oct 2026; Nathan asked Jenny to decide D2–D8, see DOLLAR-SHOWCASE-PLAN.md section 11) (Nathan or Jenny ticks this. Until it is ticked, nothing below may start.)
 
 ## 4. Phase 1: Brand swap and shell
-- [ ] Confirmed brand colours in tokens.css, PROVISIONAL marks removed, AA re-checked
+- [x] Confirmed brand colours in tokens.css, PROVISIONAL marks removed, AA re-checked
 - [ ] Header and footer use src/assets/brand/34-automation-plate.svg
 - [ ] Space Grotesk (display) and IBM Plex Mono (labels) self-hosted and wired in; Chakra Petch kept for the wordmark only
 - [ ] Three.js, GSAP ScrollTrigger and Lenis vendored with vendor/README.md

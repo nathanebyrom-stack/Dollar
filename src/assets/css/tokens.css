@@ -3,8 +3,10 @@
    Single source for colour, type, spacing, radii, shadows and motion.
    Shared by the site and promotional channels (Instagram, LinkedIn).
 
-   STATUS: colour values are PROVISIONAL until the exact codes arrive from
-   the 34 Automation brand kit in Canva. Swap the values below; names stay.
+   Colour values are the six confirmed brand colours (34automation Brand &
+   Marketing Playbook, confirmed 18 Oct 2026; DOLLAR-SHOWCASE-PLAN.md §2).
+   Anything marked "derived" is mixed from those six, not a seventh brand colour.
+   Contrast is checked by tools/check/contrast.mjs, which reads this file.
    ========================================================================== */
 
 /* ---- Fonts (self-hosted, OFL licensed — see /assets/fonts/LICENSE-*) ---- */
@@ -43,20 +45,20 @@
 }
 
 :root {
-  /* ---- Colour: raw palette (PROVISIONAL) ---- */
-  --graphite-950: #0e0f11; /* PROVISIONAL deepest base */
-  --graphite-900: #16181b; /* PROVISIONAL page base */
-  --graphite-800: #1f2226; /* PROVISIONAL raised surface */
-  --graphite-700: #2a2e33; /* PROVISIONAL card / hover surface */
-  --graphite-600: #3a3f46; /* PROVISIONAL borders */
-  --silver-100:   #f2f4f6; /* PROVISIONAL brightest light */
-  --silver-200:   #e2e5e9; /* PROVISIONAL body text */
-  --silver-400:   #a8afb8; /* PROVISIONAL muted text (AA on graphite-900) */
-  --silver-glow:  rgba(214, 222, 232, 0.35); /* PROVISIONAL glow */
-  --gold-500:     #c9a54a; /* PROVISIONAL — logo and die only */
-  --gold-300:     #e3c77a; /* PROVISIONAL — logo highlight only */
+  /* ---- Colour: raw palette (confirmed 18 Oct 2026; plan §2) ---- */
+  --graphite-950: #08090b; /* derived: Graphite darkened 35%, deepest base (not a brand colour) */
+  --graphite-900: #0c0e11; /* Graphite: page ground */
+  --graphite-800: #14171c; /* Panel: raised surface */
+  --graphite-700: #1f2228; /* derived: Panel + 6% Silver, card / hover surface */
+  --graphite-600: #2e3137; /* derived: Panel + 14% Silver, hairline borders */
+  --silver-100:   #f2f5fa; /* Spark: glow, brightest light */
+  --silver-200:   #cbd3de; /* Silver: accent and body light */
+  --silver-400:   #8b939f; /* Muted: secondary text */
+  --silver-glow:  rgba(242, 245, 250, 0.35); /* Spark at 35% */
+  --gold-500:     #c9a24c; /* Gold: the "34" in the header logo only. Rationed */
+  --gold-300:     #d7bf89; /* derived: Gold + 35% Spark. Unused in CSS; the logo plate carries its own gradient */
   --signal-amber: #f0c36b; /* placeholder markers during build only */
-  --signal-red:   #ff8a7a; /* form errors (AA on graphite-900) */
+  --signal-red:   #ff8a7a; /* form errors */
 
   /* ---- Colour: roles (use these in components) ---- */
   --color-bg:          var(--graphite-900);
@@ -68,7 +70,7 @@
   --color-text-strong: var(--silver-100);
   --color-text-muted:  var(--silver-400);
   --color-glow:        var(--silver-glow);
-  --color-brand-gold:  var(--gold-500);   /* wordmark "34" and die only */
+  --color-brand-gold:  var(--gold-500);   /* header logo "34" only: never the die, buttons, favicon or text */
   --color-focus:       var(--silver-100);
   --color-placeholder: var(--signal-amber);
   --color-error:       var(--signal-red);
