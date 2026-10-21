@@ -226,6 +226,92 @@ async function sceneChecks() {
     await t.ctx.close();
   }
 
+  // ---- Work cards and the 3D gallery (Phase 3) ----
+  const cardState = (page) => page.evaluate(() => ({
+    gallery: document.documentElement.classList.contains('gallery-3d'), mode: document.documentElement.dataset.videos || '',
+    pins: ScrollTrigger.getAll().filter((s) => s.pin).length, frames: window.__scene && window.__scene.gallery ? window.__scene.gallery.frames.length : 0,
+    playing: [...document.querySelectorAll('.work-card__video')].filter((v) => !v.paused && v.getAttribute('src')).length,
+    overflow: document.documentElement.scrollWidth > innerWidth,
+  }));
+  const toGallery = async (page, f) => { await page.evaluate((y) => scrollTo(0, y), await pinAt(page, 1.02)); await page.waitForFunction(() => window.__scene && window.__scene.gallery && document.documentElement.classList.contains('gallery-3d'), null, { timeout: 30000 }); await page.waitForTimeout(500);
+    await page.evaluate((f) => { const s = ScrollTrigger.getAll().filter((t) => t.pin)[1]; scrollTo(0, s.start + (s.end - s.start) * f); }, f); await page.waitForTimeout(1500); };
+
+  for (const tier of ['high', 'mid']) {
+    const t = await open(`?tier=${tier}`);
+    await started(t.page);
+    await toGallery(t.page, 0.5);
+    let r = await cardState(t.page);
+    await report(`Work gallery (${tier}): pinned, three frames, no horizontal overflow, at most two videos playing`, t, r.gallery && r.pins === 2 && r.frames === 3 && !r.overflow && r.playing <= 2 && r.mode === '', JSON.stringify(r));
+    await toGallery(t.page, 1);
+    r = await t.page.evaluate(() => ({ moss: (() => { const v = document.querySelector('.work-card[data-project="moss-and-memory"] .work-card__video'); const b = v.getBoundingClientRect(); return { playing: !v.paused && !!v.getAttribute('src'), onScreen: b.right > 0 && b.left < innerWidth }; })(), fpuk: (() => { const v = document.querySelector('.work-card[data-project="fluid-process-uk"] .work-card__video'); return !v; })() }));
+    await report(`Work gallery (${tier}): the Moss & Memory recording plays while its card is on screen`, t, r.moss.onScreen && r.moss.playing, JSON.stringify(r));
+
+    // Keyboard: focusing the last card while the gallery is at its start must bring that card into view.
+    await t.page.evaluate(() => { const s = ScrollTrigger.getAll().filter((x) => x.pin)[1]; scrollTo(0, s.start + 5); });
+    await t.page.waitForTimeout(1200);
+    await t.page.evaluate(() => document.querySelector('.work-card[data-project="moss-and-memory"] .work-card__title a').focus());
+    await t.page.waitForTimeout(1500);
+    r = await t.page.evaluate(() => { const b = document.querySelector('.work-card[data-project="moss-and-memory"] .work-card__media').getBoundingClientRect(); return { left: Math.round(b.left), right: Math.round(b.right), vw: innerWidth }; });
+    await report(`Work gallery (${tier}): focusing an off-screen card scrolls it into view`, t, r.left >= 0 && r.right <= r.vw + 1, JSON.stringify(r));
+    await t.ctx.close();
+  }
+
+  { // Under 900 px the cards are a plain vertical list (D3), and widening again brings the gallery back.
+    const t = await open('?tier=mid', { viewport: { width: 1200, height: 800 } });
+    await started(t.page);
+    await toGallery(t.page, 0.2);
+    await t.page.setViewportSize({ width: 800, height: 800 });
+    await t.page.waitForTimeout(1500);
+    let r = await cardState(t.page);
+    const col = await t.page.evaluate(() => { const c = [...document.querySelectorAll('.work-card')].map((x) => x.getBoundingClientRect()); return c.every((b) => Math.abs(b.left - c[0].left) < 2); });
+    await report('Work cards: under 900 px the gallery is off and the cards are a single column', t, !r.gallery && r.pins === 1 && col && !r.overflow, JSON.stringify({ ...r, col }));
+    await t.page.setViewportSize({ width: 1200, height: 800 });
+    await t.page.waitForTimeout(2000);
+    r = await cardState(t.page);
+    await report('Work cards: widening again brings the gallery back', t, r.gallery && r.pins === 2, JSON.stringify(r));
+    await t.ctx.close();
+  }
+
+  { // Falling back from 3D hands the cards back as a list with play-on-tap.
+    const t = await open('?tier=high');
+    await started(t.page);
+    await toGallery(t.page, 0.3);
+    await t.page.evaluate(() => window.__scene.renderer.getContext().getExtension('WEBGL_lose_context').loseContext());
+    await t.page.waitForTimeout(1500);
+    const r = await cardState(t.page);
+    await report('Work cards: losing the 3D context returns the list with play-on-tap and one pin', t, !r.gallery && r.pins === 1 && r.mode === 'tap' && r.frames === 0, JSON.stringify(r));
+    await t.ctx.close();
+  }
+
+  { // Low and reduced motion: play on tap, one video at a time, nothing starts by itself.
+    for (const [name, opts] of [['Low', {}], ['reduced motion', { reducedMotion: true }]]) {
+      const t = await open('', opts);
+      await t.page.waitForFunction(() => document.documentElement.classList.contains('scene-still'), null, { timeout: 15000 });
+      await t.page.evaluate(() => document.getElementById('scene-work').scrollIntoView({ block: 'center' }));
+      await t.page.waitForTimeout(1500);
+      let r = await cardState(t.page);
+      const btn = await t.page.evaluate(() => { const b = document.querySelector('.work-card[data-project="moss-and-memory"] .work-card__play'); return { visible: getComputedStyle(b).display !== 'none' }; });
+      await report(`Work cards (${name}): a Play button shows and nothing plays by itself`, t, r.mode === 'tap' && r.playing === 0 && btn.visible && !r.gallery, JSON.stringify({ ...r, ...btn }));
+      await t.page.click('.work-card[data-project="moss-and-memory"] .work-card__play');
+      await t.page.waitForTimeout(1500);
+      r = await t.page.evaluate(() => { const v = document.querySelector('.work-card[data-project="moss-and-memory"] .work-card__video'); return { playing: !v.paused && !!v.getAttribute('src'), flagged: v.closest('.work-card__media').classList.contains('is-playing'), url: location.pathname }; });
+      await report(`Work cards (${name}): tapping Play starts that video and does not open the case study`, t, r.playing && r.flagged && r.url === '/', JSON.stringify(r));
+      await t.ctx.close();
+    }
+  }
+
+  { // Content rules: badge text, outbound links only on Live, no media invented.
+    const t = await open('?tier=low');
+    const r = await t.page.evaluate(() => ({
+      badges: [...document.querySelectorAll('.work-card')].map((c) => `${c.dataset.project}=${c.querySelector('.badge').textContent}`),
+      outbound: [...document.querySelectorAll('.work-list a[href^="http"]')].map((a) => `${a.closest('.work-card').dataset.project}>${new URL(a.href).hostname}`),
+      placeholders: [...document.querySelectorAll('.work-card__media--placeholder')].length,
+    }));
+    await report('Work cards: honest status badges, an outbound link only on the Live project, placeholders where no recording exists', t,
+      r.badges.join() === 'fluid-process-uk=Live,aoe-engineering=In build,moss-and-memory=Concept' && r.outbound.join() === 'fluid-process-uk>www.fluidprocess.co.uk' && r.placeholders === 2, JSON.stringify(r));
+    await t.ctx.close();
+  }
+
   { // ?tier=low forced, and a browser with no WebGL at all: both are the stills path, with no console errors.
     const t = await open('?tier=low');
     await t.page.waitForFunction(() => document.documentElement.classList.contains('scene-still'), null, { timeout: 15000 });

@@ -1,0 +1,14 @@
+{
+  "viewports": {
+    "desktop": { "width": 1440, "height": 900, "dpr": 1, "encodeWidth": 1280 },
+    "phone": { "width": 390, "height": 844, "dpr": 2, "encodeWidth": 390 }
+  },
+  "projects": {
+    "fluid-process-uk": {
+      "url": "https://www.fluidprocess.co.uk/",
+      "viewports": ["desktop", "phone"],
+      "scrollSeconds": 10,
+      "maxScreens": 6
+    }
+  }
+}

@@ -1,0 +1,48 @@
+/* Shared components. Values come from tokens.css. */
+
+/* ---- Work cards (Home and /work/; markup is generated from assets/work/projects.json) ----
+   A card is a real, focusable HTML link in every layout. When the 3D gallery is on (html.gallery-3d) the card's
+   media box becomes the place a 3D frame is drawn behind it, so clicking and keyboard focus need no extra code. */
+.work-list { list-style: none; margin: var(--space-6) 0 0; padding: 0; display: grid; gap: var(--space-5); grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); }
+/* D3: under 900 px the Work cards are a vertical list, one per row. */
+@media (max-width: 899px) { .work-list { grid-template-columns: 1fr; } }
+.work-card {
+  position: relative; display: grid; align-content: start; gap: var(--space-4); padding: var(--space-4);
+  background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); box-shadow: var(--edge-light);
+  transition: box-shadow var(--dur-fast) var(--ease-out);
+}
+.work-card:hover, .work-card:focus-within { box-shadow: var(--edge-light), var(--glow-sm); }
+
+.work-card__visual { position: relative; }
+.work-card__visual--phone { margin-bottom: var(--space-6); } /* room for the phone recording that overlaps the bottom edge */
+.work-card__media { position: relative; border-radius: var(--radius-sm); overflow: hidden; background: var(--color-bg); }
+/* The phone recording overlaps the bottom-right corner of the desktop one. */
+.work-card__media--phone { position: absolute; right: 4%; bottom: -12%; width: 22%; border-radius: var(--radius-md); border: 1px solid var(--color-border); box-shadow: var(--shadow-md); }
+.work-card__video { display: block; width: 100%; height: auto; background: var(--color-bg); }
+.work-card__media--placeholder { display: grid; place-items: center; aspect-ratio: 16 / 10; padding: var(--space-4); border: 1px dashed var(--color-text-muted); text-align: center; }
+
+/* Play on tap: shown only where videos do not start by themselves (Low tier, reduced motion). */
+.work-card__play {
+  position: absolute; right: var(--space-3); bottom: var(--space-3); z-index: 2; display: none;
+  padding: var(--space-2) var(--space-4); border: 1px solid var(--color-text); border-radius: var(--radius-pill);
+  background: var(--color-bg); color: var(--color-text-strong); font: var(--weight-medium) var(--text-sm)/1 var(--font-body); cursor: pointer;
+}
+html[data-videos="tap"] .work-card__play { display: inline-block; }
+html[data-videos="tap"] .work-card__media.is-playing .work-card__play { display: none; }
+
+.work-card__body { display: grid; gap: var(--space-2); }
+.work-card__status { margin: 0; }
+.work-card__title { margin: 0; font-size: var(--text-xl); }
+.work-card__title a { color: inherit; text-decoration: none; }
+/* Stretched link: the whole card opens the case study. */
+.work-card__title a::after { content: ""; position: absolute; inset: 0; }
+.work-card__visit { position: relative; z-index: 1; justify-self: start; font: var(--weight-regular) var(--text-sm)/1.4 var(--font-mono); }
+
+/* Status badges: text first, so they never rely on colour alone. Solid = live, quieter = in build, dashed = concept. */
+.badge {
+  display: inline-block; padding: 0.2rem 0.55rem; border: 1px solid currentColor; border-radius: var(--radius-sm);
+  font: var(--weight-medium) var(--text-xs)/1.4 var(--font-mono); letter-spacing: var(--tracking-eyebrow); text-transform: uppercase;
+}
+.badge--live { color: var(--color-text-strong); }
+.badge--in-build { color: var(--color-text); }
+.badge--concept { color: var(--color-text-muted); border-style: dashed; }

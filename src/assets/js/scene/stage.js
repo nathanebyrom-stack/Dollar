@@ -118,6 +118,7 @@ export async function start({ tier: initialTier, forced, scene: sceneName, still
     falloff = readFalloff(stageEl);
     measureLayout();
     if (post) { post.setSize(w, h, pixelRatio()); post.setFalloffCentre(falloff.x, falloff.y); }
+    if (gallery) gallery.resize();
   }
 
   const TAN_HALF_FOV = Math.tan(15 * Math.PI / 180); // the camera's vertical fov is 30 degrees
@@ -149,6 +150,9 @@ export async function start({ tier: initialTier, forced, scene: sceneName, still
   let guard = null; // { elapsed, total, n } while measuring frame times after the Arrival
   let disposed = false;
   let timelines = null; // the gsap context holding the scroll timelines, so they can be reverted
+  let gallery = null;   // the Work gallery's 3D frames (frames.js), desktop only, created when Work is near
+  let galleryScroll = null; // the gsap.matchMedia holding the Work pin
+  let galleryWatch = null;  // IntersectionObserver / media query that start it
 
   // Position the die, lights and camera for time `t` (seconds) from `state`. Pure placement: no drawing.
   function place(t) {
@@ -174,8 +178,10 @@ export async function start({ tier: initialTier, forced, scene: sceneName, still
     tilt.x += (tiltTarget.x - tilt.x) * k;
     tilt.y += (tiltTarget.y - tilt.y) * k;
     place(t);
+    if (gallery) gallery.update(t, dt);
 
-    if (post) post.render(); else renderer.render(scene, camera);
+    if (post) post.render();
+    else { renderer.render(scene, camera); if (gallery) gallery.renderDirect(renderer); }
     frames++;
 
     if (shaderFailed) { shaderFailed = false; dropTier('shader failed to compile'); return; }
@@ -206,6 +212,38 @@ export async function start({ tier: initialTier, forced, scene: sceneName, still
   if (!stillSpec) document.querySelectorAll('[data-scene-active]').forEach((el) => io.observe(el));
   document.addEventListener('visibilitychange', updateLoop);
 
+  /* ---- The Work gallery: created lazily, when the Work section is within one viewport (ARCHITECTURE section 4) ---- */
+  function watchGallery() {
+    if (sceneName !== 'home' || stillSpec || disposed) return;
+    const section = document.getElementById('scene-work');
+    const cards = section ? [...section.querySelectorAll('.work-card')] : [];
+    if (!cards.length) return;
+    const wide = matchMedia('(min-width: 900px)');
+    let near = false;
+    const maybeStart = () => { if (near && wide.matches && !gallery && !disposed) startGallery(cards).catch((err) => console.error('Scene: the Work gallery could not start', err)); };
+    const io = new IntersectionObserver((entries) => { near = entries.some((e) => e.isIntersecting); maybeStart(); }, { rootMargin: '100% 0px' });
+    io.observe(section);
+    wide.addEventListener('change', maybeStart);
+    galleryWatch = { stop() { io.disconnect(); wide.removeEventListener('change', maybeStart); } };
+  }
+
+  async function startGallery(cards) {
+    const frames = await import('./frames.js');
+    if (disposed || gallery) return;
+    const created = frames.createGallery({ environment: scene.environment, tier, anisotropy, container: stageEl, cards });
+    gallery = created;
+    if (post) post.setGallery(created);
+    const scroll = await import('./timeline-home.js');
+    if (disposed || gallery !== created) return;
+    galleryScroll = scroll.buildWorkGallery({ gallery: created, tier });
+  }
+
+  function stopGallery() {
+    if (galleryWatch) { galleryWatch.stop(); galleryWatch = null; }
+    if (galleryScroll) { galleryScroll.revert(); galleryScroll = null; }
+    if (gallery) { if (post) post.clearGallery(); gallery.dispose(); gallery = null; }
+  }
+
   /* ---- Tier changes (only ever downwards) ---- */
   function setTierAttr() { html.dataset.tier = tier; }
 
@@ -213,11 +251,13 @@ export async function start({ tier: initialTier, forced, scene: sceneName, still
     if (disposed || tier === 'low') return;
     console.warn(`Scene: dropping from ${tier} tier: ${reason}`);
     if (tier === 'high') {
+      stopGallery(); // its screens were drawn for the High pipeline: rebuild them for Mid
       tier = 'mid';
       if (post) { post.dispose(); post = null; }
       tiltTarget.x = tiltTarget.y = 0;
       resize(); // pixel ratio cap
       setTierAttr();
+      watchGallery();
     } else {
       toLow(reason);
     }
@@ -228,6 +268,7 @@ export async function start({ tier: initialTier, forced, scene: sceneName, still
     console.warn(`Scene: showing the page without 3D (${reason})`);
     tier = 'low';
     setTierAttr();
+    stopGallery();
     dispose();
     // The live scroll timelines and their pin must go before the Low controller builds its own.
     if (timelines) { timelines.revert(); timelines = null; }
@@ -266,6 +307,7 @@ export async function start({ tier: initialTier, forced, scene: sceneName, still
       .to(state, { rim: 1, duration: 1.8, ease: 'power2.inOut' }, 0)
       .call(() => { if (!forced) guard = { elapsed: 0, total: 0, n: 0 }; }, null, 1.5);
     if (sceneName === 'home') {
+      watchGallery();
       import('./timeline-home.js')
         .then((m) => { if (!disposed) timelines = m.buildHomeTimelines({ state, tier }); })
         .catch((err) => console.error('Scene: scroll timelines failed to build', err));
@@ -285,6 +327,6 @@ export async function start({ tier: initialTier, forced, scene: sceneName, still
   }
 
   updateLoop();
-  window.__scene = { state, die, get tier() { return tier; }, get frames() { return frames; }, get post() { return post; }, camera, renderer, dropTier };
+  window.__scene = { state, die, get tier() { return tier; }, get frames() { return frames; }, get post() { return post; }, get gallery() { return gallery; }, camera, renderer, dropTier };
   return { state, dispose };
 }

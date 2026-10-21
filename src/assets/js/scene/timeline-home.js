@@ -68,3 +68,54 @@ export function buildHomeTimelines({ state, tier }) {
   ScrollTrigger.refresh();
   return context;
 }
+
+/* Scene 3: the Work gallery, desktop only (D3: under 900 px the cards stay a plain vertical list). The section pins and
+   the row of cards travels right to left; the 3D frames follow the cards (frames.js). Called by stage.js once the
+   gallery module is ready. Returns a gsap.matchMedia: reverting it removes the pin and the gallery-3d class. */
+export function buildWorkGallery({ gallery, tier }) {
+  const gsap = window.gsap;
+  const ScrollTrigger = window.ScrollTrigger;
+  const section = document.getElementById('scene-work');
+  const list = section && section.querySelector('.work-list');
+  if (!gsap || !ScrollTrigger || !list) return null;
+  const root = document.documentElement;
+  const cards = [...list.querySelectorAll('.work-card')];
+  const scrub = tier === 'high' ? 1 : true;
+  let trigger = null;
+
+  const pad = () => { const cs = getComputedStyle(section); return (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0); };
+  const travel = () => Math.max(0, list.scrollWidth - (section.clientWidth - pad()));
+
+  // A pinned, translated track cannot rely on the browser's own scroll-into-view, so when keyboard focus reaches a card
+  // that is off screen, move the page to where that card is in view.
+  function reveal(event) {
+    if (!trigger) return;
+    const card = event.target.closest && event.target.closest('.work-card');
+    if (!card) return;
+    const distance = travel();
+    if (!distance) return;
+    const progress = Math.min(1, Math.max(0, card.offsetLeft / distance));
+    const y = trigger.start + progress * (trigger.end - trigger.start);
+    if (window.__lenis) window.__lenis.scrollTo(y, { immediate: true }); else window.scrollTo(0, y);
+  }
+
+  const mm = gsap.matchMedia();
+  mm.add('(min-width: 900px)', () => {
+    root.classList.add('gallery-3d');
+    gallery.setActive(true);
+    list.addEventListener('focusin', reveal);
+    const tween = gsap.to(list, {
+      x: () => -travel(), ease: 'none',
+      scrollTrigger: { trigger: section, start: 'top top', end: () => `+=${cards.length * 0.8 * innerHeight}`, pin: true, anticipatePin: 1, invalidateOnRefresh: true, scrub },
+    });
+    trigger = tween.scrollTrigger;
+    ScrollTrigger.refresh();
+    return () => {
+      list.removeEventListener('focusin', reveal);
+      root.classList.remove('gallery-3d');
+      gallery.setActive(false);
+      trigger = null;
+    };
+  });
+  return mm;
+}

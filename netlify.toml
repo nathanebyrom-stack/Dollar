@@ -33,7 +33,7 @@
     Permissions-Policy = "camera=(), microphone=(), geolocation=(), interest-cohort=()"
     Cross-Origin-Opener-Policy = "same-origin"
     # Everything self-hosted: scripts, fonts and vendored libraries.
-    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests"
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; media-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests"
 
 # Cache rules per asset folder. They do not overlap, so no two rules ever set Cache-Control for the same file.
 # Fonts and vendored libraries change only when the file name or version changes: cache for a year.

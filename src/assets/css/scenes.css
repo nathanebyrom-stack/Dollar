@@ -66,3 +66,20 @@ body[data-scene] main, body[data-scene] .site-footer { position: relative; z-ind
 html[data-tier="low"] .service-panel { transition: opacity var(--dur-slow) var(--ease-out), visibility 0s linear var(--dur-slow); }
 html[data-tier="low"] .service-panel.is-active { visibility: visible; opacity: 1; transition: opacity var(--dur-slow) var(--ease-out), visibility 0s; }
 @media (max-width: 899px) { .scene-on .scene-services { align-content: end; padding-bottom: var(--space-8); } }
+
+/* Scene 3: the Work gallery. Desktop only, and only once the 3D frames are ready (stage.js sets html.gallery-3d, and
+   removes it again under 900 px or if the 3D scene is abandoned). The section pins and the row of cards travels
+   sideways; each card's media box stays empty so its 3D frame (frames.js) shows through. Under 900 px, with reduced
+   motion, or on the Low tier none of this applies: the cards are an ordinary list (components.css). */
+html.gallery-3d body { overflow-x: clip; } /* the travelling row is wider than the screen */
+.gallery-3d .scene-work {
+  --edge: max(var(--gutter), calc((100vw - var(--max-width)) / 2 + var(--gutter)));
+  width: 100vw; margin-left: calc(50% - 50vw); min-height: 100svh; display: grid; align-content: center;
+  padding: var(--space-6) var(--gutter) var(--space-6) var(--edge); border-bottom: 0;
+}
+.gallery-3d .scene-work .work-list { display: flex; flex-wrap: nowrap; gap: var(--space-8); margin-top: var(--space-5); will-change: transform; }
+.gallery-3d .work-card { flex: 0 0 min(42vw, 38rem); gap: var(--space-6); padding: 0; background: transparent; border-color: transparent; box-shadow: none; } /* the gap clears the frame's bezel */
+.gallery-3d .work-card__media { background: transparent; overflow: visible; }
+.gallery-3d .work-card__video { opacity: 0; } /* it still plays: it is the source of the frame's video texture */
+.gallery-3d .work-card__media--placeholder { border-color: transparent; }
+.gallery-3d .work-card__media--phone { border-color: transparent; box-shadow: none; border-radius: 0; } /* its 3D frame is the visible one */

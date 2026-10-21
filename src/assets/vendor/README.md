@@ -46,6 +46,8 @@ ARCHITECTURE §12 budgets the 3D JavaScript (Three core, addons and scene module
 
 So the total is about 15 KB over budget if the transfer is gzip and about 21 KB under if it is Brotli at its best level. (`scene/stills.js`, 2.1 KB gzip, is the Low path only and is not part of this.) **Measured on the deployed preview (21 Oct 2026, `accept-encoding: br`, 21 files):** Three.js and addons 190.4 KB, scene modules 16.2 KB, **206.6 KB in all, 6.6 KB (3%) over the 200 KB budget** (gzip: 216.6 KB). Netlify's Brotli is less aggressive than level 11, so the best-case figures above were optimistic. It is fetched after first paint, so it does not touch the first-paint budget or LCP. To get under: build a tree-shaken Three.js bundle holding only the classes the scene uses (still vendored and committed, still no runtime bundler), or accept the overshoot and decide at Phase 8. The bloom addon was dropped in Phase 2 (the engraving glow is baked into the emissive map), which already saved about 2 KB gzip.
 
+**Phase 3 addition:** `scene/frames.js` (the Work gallery's 3D frames) is another 4.2 KB gzip. It loads lazily, only when the Work section is within one viewport and the screen is at least 900 px wide, so it is not in the first 3D load. With it, the all-in estimate is about 210 KB Brotli, roughly 10 KB (5%) over budget. Re-measure on the preview after the next deploy.
+
 ## Cache
 
 Netlify serves `/assets/vendor/*` with `Cache-Control: public, max-age=31536000, immutable` (see `netlify.toml`). Version numbers are in the file and folder names, so an upgrade changes the URL.

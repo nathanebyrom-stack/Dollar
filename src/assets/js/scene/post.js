@@ -63,7 +63,8 @@ export function createComposer({ renderer, scene, camera, width, height, pixelRa
   composer.setSize(width, height);
 
   composer.addPass(new RenderPass(scene, camera));
-  composer.addPass(new OutputPass());
+  const output = new OutputPass();
+  composer.addPass(output);
   const finish = new ShaderPass(FinishShader);
   finish.uniforms.uInner.value.set(...falloff.inner);
   finish.uniforms.uOuter.value.set(...falloff.outer);
@@ -71,10 +72,32 @@ export function createComposer({ renderer, scene, camera, width, height, pixelRa
   finish.uniforms.uRadius.value.set(falloff.rx, falloff.ry);
   composer.addPass(finish);
 
+  // The Work gallery (frames.js) adds two overlay passes: the frame bodies before tone mapping, lit and tone mapped
+  // with the die, and the screens after it, as raw display values so a video keeps its own colours.
+  let galleryPasses = null;
   return {
     composer,
+    setGallery(gallery) {
+      this.clearGallery();
+      const bodies = new RenderPass(gallery.bodies, gallery.camera);
+      const screens = new RenderPass(gallery.screens, gallery.camera);
+      for (const pass of [bodies, screens]) { pass.clear = false; pass.clearDepth = true; }
+      composer.insertPass(bodies, 1);
+      composer.insertPass(screens, composer.passes.indexOf(output) + 1);
+      galleryPasses = { gallery, bodies, screens };
+    },
+    clearGallery() {
+      if (!galleryPasses) return;
+      for (const pass of [galleryPasses.bodies, galleryPasses.screens]) {
+        const at = composer.passes.indexOf(pass);
+        if (at !== -1) composer.passes.splice(at, 1);
+        pass.dispose();
+      }
+      galleryPasses = null;
+    },
     render() {
       finish.uniforms.uTime.value = Math.random() * 1000; // fresh noise every frame
+      if (galleryPasses) galleryPasses.bodies.enabled = galleryPasses.screens.enabled = galleryPasses.gallery.active;
       composer.render();
     },
     setSize(w, h, pr) {
@@ -83,6 +106,7 @@ export function createComposer({ renderer, scene, camera, width, height, pixelRa
     },
     setFalloffCentre(x, y) { finish.uniforms.uCentre.value.set(x, y); },
     dispose() {
+      this.clearGallery();
       composer.dispose();
       target.dispose();
     },

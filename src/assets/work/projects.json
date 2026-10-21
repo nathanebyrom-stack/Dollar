@@ -1,0 +1,45 @@
+{
+  "statuses": {
+    "live": "Live",
+    "in-build": "In build",
+    "concept": "Concept"
+  },
+  "projects": [
+    {
+      "id": "fluid-process-uk",
+      "name": "Fluid Process UK",
+      "status": "live",
+      "page": "/work/fluid-process-uk/",
+      "visit": { "url": "https://www.fluidprocess.co.uk", "label": "fluidprocess.co.uk" },
+      "summary": "[PLACEHOLDER: Fluid Process UK summary — Nathan's copy]",
+      "media": null,
+      "placeholder": "[PLACEHOLDER: Fluid Process UK desktop and phone recordings, to be captured with tools/capture (decision D8)]"
+    },
+    {
+      "id": "aoe-engineering",
+      "name": "AOE Engineering",
+      "status": "in-build",
+      "page": "/work/aoe-engineering/",
+      "summary": "[PLACEHOLDER: AOE Engineering summary — Nathan's copy]",
+      "media": null,
+      "placeholder": "[PLACEHOLDER: AOE Engineering old site against the new build, once the new build has a preview]"
+    },
+    {
+      "id": "moss-and-memory",
+      "name": "Moss & Memory",
+      "status": "concept",
+      "page": "/work/moss-and-memory/",
+      "summary": "[PLACEHOLDER: Moss & Memory summary — Nathan's copy]",
+      "media": {
+        "desktop": {
+          "dir": "/assets/work/moss-and-memory/",
+          "mp4": "build-sequence.mp4",
+          "webm": "build-sequence.webm",
+          "poster": "poster-hero.jpg",
+          "width": 1600,
+          "height": 1190
+        }
+      }
+    }
+  ]
+}

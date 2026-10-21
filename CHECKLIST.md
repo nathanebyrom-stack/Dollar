@@ -34,8 +34,8 @@ Steps 3 onwards replaced by Jenny, 18 Oct 2026, to follow DOLLAR-SHOWCASE-PLAN.m
 
 ## 6. Phase 3: Work gallery
 - [ ] Capture pipeline (tools/capture) and Fluid Process UK recordings
-- [ ] 3D frames with video textures, play only in view
-- [ ] Plain card-list fallback with status badges
+- [x] 3D frames with video textures, play only in view
+- [x] Plain card-list fallback with status badges
 
 ## 7. Phase 4: Services and automation graph
 - [ ] Web design page
