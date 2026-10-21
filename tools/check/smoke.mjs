@@ -166,6 +166,11 @@ for (const f of walk(dist)) {
   }
 }
 
+// Vendored ES modules must not use bare specifiers ('three'): they need an import map, which the CSP forbids.
+for (const f of walk(join(dist, 'assets', 'vendor')).filter((x) => /three-r186.*\.js$/.test(x))) {
+  for (const m of readFileSync(f, 'utf8').matchAll(/(?:from|import)\s*["']([^"'.\/][^"']*)["']/g)) fail(`${f}: bare module specifier "${m[1]}"`);
+}
+
 await browser.close();
 server.close();
 if (failures.length) { console.log(`\nSMOKE FAILED: ${failures.length} problem(s)`); process.exit(1); }
