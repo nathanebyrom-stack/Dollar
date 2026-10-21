@@ -36,7 +36,15 @@ Only the addons the scene needs are included (ARCHITECTURE §4), plus the files 
 
 ## Size against the budget
 
-ARCHITECTURE §12 budgets the 3D JavaScript (Three core, addons and scene modules) at 200 KB gzip, fetched after first paint. Three.js and its addons alone come to about **201 KB gzip** (each file gzipped on its own), before any scene code is written. Netlify serves Brotli, which is smaller than gzip, so the transferred size will be lower, but this needs settling in Phase 2 before the scene modules are added. Options: measure the real Brotli transfer on the preview, or build a tree-shaken Three.js bundle containing only the classes the scene uses (still vendored and committed, still no runtime bundler).
+ARCHITECTURE §12 budgets the 3D JavaScript (Three core, addons and scene modules) at 200 KB gzip, fetched after first paint. Measured on 21 Oct 2026 for the 14 Three.js files together:
+
+| | KB |
+|---|---|
+| Raw (minified) | 771.7 |
+| gzip, level 9 | 200.3 |
+| Brotli, level 11 (best case) | 166.5 |
+
+So Three.js and its addons alone already use the whole 200 KB if the transfer is gzip, and leave about 33 KB for scene code if it is Brotli at level 11. Netlify serves Brotli, but its compression level is not documented, so the real transfer sits somewhere between the two. This is not settled. Before the scene modules go in, measure the transfer from the deployed preview (`curl -sH 'accept-encoding: br' -o /dev/null -w '%{size_download}'` on each file), and if it is tight, build a tree-shaken Three.js bundle holding only the classes the scene uses (still vendored and committed, still no runtime bundler).
 
 ## Cache
 
