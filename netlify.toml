@@ -16,6 +16,12 @@
   to = "/"
   status = 301
 
+# Browsers and crawlers ask for /favicon.ico by default; serve the 32 px icon instead of a 404.
+[[redirects]]
+  from = "/favicon.ico"
+  to = "/assets/brand/favicon-32.png"
+  status = 200
+
 # Security headers for every response.
 [[headers]]
   for = "/*"

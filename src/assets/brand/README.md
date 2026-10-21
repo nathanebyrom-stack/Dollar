@@ -3,6 +3,7 @@
 | File | Use |
 |---|---|
 | 34-automation-plate.svg | Horizontal logo for the site header and footer. Dark backgrounds only (silver text disappears on white). |
+| favicon.svg, favicon-32.png, apple-touch-icon.png | Silver "34" on Graphite (D6). No gold. Generated from the plate's "34" outlines by `node tools/brand/make-favicon.mjs`; do not edit by hand. `/favicon.ico` is redirected to the 32 px PNG in netlify.toml. |
 
 - Approved by Nathan, 19 Oct 2026. Built by Jenny from Nathan's Canva mark: gold gradient "34", silver divider, silver "AUTOMATION".
 - All lettering is converted to outlines (no font needed). Letterforms from Archivo Black and Archivo Bold (SIL Open Font License).

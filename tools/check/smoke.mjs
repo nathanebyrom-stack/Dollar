@@ -99,7 +99,21 @@ async function checkPage(route, viewport, label, extra = {}) {
     innerWidth: window.innerWidth,
     csp: window.__csp,
     hrefs: [...document.querySelectorAll('a[href]')].map((a) => a.getAttribute('href')).filter((h) => h.startsWith('/') && !h.startsWith('//')),
+    icons: [...document.querySelectorAll('link[rel~="icon"], link[rel="apple-touch-icon"]')].map((l) => l.getAttribute('href')),
+    themeColor: document.querySelector('meta[name="theme-color"]')?.getAttribute('content'),
+    logos: ['.site-header .site-logo img', '.site-footer .site-logo img'].map((q) => {
+      const i = document.querySelector(q);
+      return i && { src: i.getAttribute('src'), alt: i.alt, loaded: i.complete && i.naturalWidth > 0, w: Math.round(i.getBoundingClientRect().width), h: Math.round(i.getBoundingClientRect().height) };
+    }),
   }));
+  if (info.icons.length < 3) problems.push(`expected svg, png and apple-touch icon links, found ${info.icons.length}`);
+  if (info.themeColor?.toLowerCase() !== '#0c0e11') problems.push(`theme-color is ${info.themeColor}, want #0C0E11`);
+  info.logos.forEach((l, i) => {
+    const where = i ? 'footer' : 'header';
+    if (!l) problems.push(`${where} logo image missing`);
+    else if (!l.loaded || !l.src.endsWith('34-automation-plate.svg') || l.alt !== '34 Automation') problems.push(`${where} logo not rendering the plate with alt text: ${JSON.stringify(l)}`);
+    else if (l.w < 100 || l.h < 20) problems.push(`${where} logo rendered too small: ${l.w}x${l.h}`);
+  });
   if (info.h1 !== 1) problems.push(`${info.h1} <h1> elements (want 1)`);
   if (info.scrollWidth > info.innerWidth) problems.push(`horizontal overflow: scrollWidth ${info.scrollWidth} > ${info.innerWidth}`);
   for (const v of info.csp) problems.push(`CSP violation: ${v}`);

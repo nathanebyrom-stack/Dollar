@@ -26,9 +26,12 @@ img { max-width: 100%; height: auto; }
   display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem;
   padding: var(--space-4) var(--gutter); border-bottom: 1px solid var(--color-border);
 }
-.wordmark, .site-footer__brand { display: inline-flex; gap: 0.4rem; align-items: baseline; text-decoration: none; font-family: var(--font-display); letter-spacing: var(--tracking-wordmark); }
-.wordmark__num { color: var(--color-brand-gold); font-weight: var(--weight-bold); font-size: var(--text-xl); }
-.wordmark__name { font-weight: var(--weight-semibold); font-size: var(--text-sm); }
+/* Logo plate (dark backgrounds only; see assets/brand/README.md). If the image fails, the alt text
+   shows in the wordmark face, which is the only place Chakra Petch is used. No gold in CSS. */
+.site-logo { display: inline-block; text-decoration: none; font: var(--weight-bold) var(--text-sm)/1.2 var(--font-wordmark); letter-spacing: var(--tracking-wordmark); color: var(--color-text-strong); }
+.site-logo img { display: block; height: 32px; width: auto; }
+.site-logo--footer img { height: 24px; }
+@media (max-width: 47.99rem) { .site-header .site-logo img { height: 26px; } }
 
 .site-nav__list, .site-nav__sub, .site-footer__nav ul { list-style: none; margin: 0; padding: 0; }
 .site-nav__list { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; align-items: center; }
