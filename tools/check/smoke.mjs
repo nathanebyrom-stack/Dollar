@@ -93,7 +93,9 @@ async function checkPage(route, viewport, label, extra = {}) {
   const res = await page.goto(base + route, { waitUntil: 'networkidle' });
   const want = route === '/404.html' ? 200 : 200;
   if (res.status() !== want) problems.push(`status ${res.status()}`);
-  const info = await page.evaluate(() => ({
+  const info = await page.evaluate(async () => ({
+    fonts: (await document.fonts.ready, [...document.fonts].filter((f) => f.status === 'loaded').map((f) => `${f.family.replace(/"/g, '')} ${f.weight}`)),
+    preloads: [...document.querySelectorAll('link[rel="preload"][as="font"]')].map((l) => l.getAttribute('href').split('/').pop()),
     h1: document.querySelectorAll('h1').length,
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth: window.innerWidth,
@@ -106,6 +108,11 @@ async function checkPage(route, viewport, label, extra = {}) {
       return i && { src: i.getAttribute('src'), alt: i.alt, loaded: i.complete && i.naturalWidth > 0, w: Math.round(i.getBoundingClientRect().width), h: Math.round(i.getBoundingClientRect().height) };
     }),
   }));
+  // D7: only Space Grotesk and Inter are preloaded; Chakra Petch is a fallback and must not load while the logo renders.
+  const wantPreloads = ['inter-latin-wght-normal.woff2', 'space-grotesk-latin-700-normal.woff2'];
+  if (JSON.stringify([...info.preloads].sort()) !== JSON.stringify(wantPreloads)) problems.push(`font preloads are ${JSON.stringify(info.preloads)}, want ${JSON.stringify(wantPreloads)}`);
+  for (const f of ['Space Grotesk 700', 'Inter 100 900']) if (!info.fonts.includes(f)) problems.push(`font not loaded: ${f} (loaded: ${info.fonts.join(', ')})`);
+  if (info.fonts.some((f) => f.startsWith('Chakra Petch'))) problems.push('Chakra Petch loaded although the logo plate renders (it is fallback only)');
   if (info.icons.length < 3) problems.push(`expected svg, png and apple-touch icon links, found ${info.icons.length}`);
   if (info.themeColor?.toLowerCase() !== '#0c0e11') problems.push(`theme-color is ${info.themeColor}, want #0C0E11`);
   info.logos.forEach((l, i) => {

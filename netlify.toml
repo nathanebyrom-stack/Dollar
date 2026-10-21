@@ -32,11 +32,43 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(), microphone=(), geolocation=(), interest-cohort=()"
     Cross-Origin-Opener-Policy = "same-origin"
-    # Everything self-hosted: scripts, fonts (Chakra Petch, Inter) and GSAP.
+    # Everything self-hosted: scripts, fonts and vendored libraries.
     Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests"
 
-# Long cache for static assets (filenames to be fingerprinted later if needed; keep modest for now).
+# Cache rules per asset folder. They do not overlap, so no two rules ever set Cache-Control for the same file.
+# Fonts and vendored libraries change only when the file name or version changes: cache for a year.
 [[headers]]
-  for = "/assets/*"
+  for = "/assets/fonts/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/assets/vendor/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Everything else under /assets keeps a modest cache (filenames are not fingerprinted).
+[[headers]]
+  for = "/assets/css/*"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+
+[[headers]]
+  for = "/assets/js/*"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+
+[[headers]]
+  for = "/assets/img/*"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+
+[[headers]]
+  for = "/assets/brand/*"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+
+[[headers]]
+  for = "/assets/work/*"
   [headers.values]
     Cache-Control = "public, max-age=3600"
