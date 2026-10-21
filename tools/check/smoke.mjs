@@ -102,6 +102,7 @@ async function checkPage(route, viewport, label, extra = {}) {
     csp: window.__csp,
     hrefs: [...document.querySelectorAll('a[href]')].map((a) => a.getAttribute('href')).filter((h) => h.startsWith('/') && !h.startsWith('//')),
     workLinks: ['.site-header', '.site-footer'].map((q) => !!document.querySelector(`${q} a[href="/work/"]`)),
+    smooth: { lenis: !!window.__lenis, cls: document.documentElement.classList.contains('lenis'), st: typeof window.ScrollTrigger?.create },
     icons: [...document.querySelectorAll('link[rel~="icon"], link[rel="apple-touch-icon"]')].map((l) => l.getAttribute('href')),
     themeColor: document.querySelector('meta[name="theme-color"]')?.getAttribute('content'),
     logos: ['.site-header .site-logo img', '.site-footer .site-logo img'].map((q) => {
@@ -116,6 +117,10 @@ async function checkPage(route, viewport, label, extra = {}) {
   if (info.fonts.some((f) => f.startsWith('Chakra Petch'))) problems.push('Chakra Petch loaded although the logo plate renders (it is fallback only)');
   if (!info.workLinks[0]) problems.push('header has no link to /work/');
   if (!info.workLinks[1]) problems.push('footer has no link to /work/');
+  // Smooth scroll: on in normal motion, off (native scroll) under prefers-reduced-motion.
+  if (info.smooth.st !== 'function') problems.push('ScrollTrigger is not available');
+  if (extra.reducedMotion && (info.smooth.lenis || info.smooth.cls)) problems.push('Lenis is active under prefers-reduced-motion');
+  if (!extra.reducedMotion && !(info.smooth.lenis && info.smooth.cls)) problems.push(`Lenis is not running (instance ${info.smooth.lenis}, html.lenis ${info.smooth.cls})`);
   if (info.icons.length < 3) problems.push(`expected svg, png and apple-touch icon links, found ${info.icons.length}`);
   if (info.themeColor?.toLowerCase() !== '#0c0e11') problems.push(`theme-color is ${info.themeColor}, want #0C0E11`);
   info.logos.forEach((l, i) => {

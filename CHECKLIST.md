@@ -24,7 +24,7 @@ Steps 3 onwards replaced by Jenny, 18 Oct 2026, to follow DOLLAR-SHOWCASE-PLAN.m
 - [x] Space Grotesk (display) and IBM Plex Mono (labels) self-hosted and wired in; Chakra Petch kept for the wordmark only
 - [x] Three.js, GSAP ScrollTrigger and Lenis vendored with vendor/README.md
 - [x] /work/ index route added to pages.json, header and footer
-- [ ] Smooth scroll wired, respecting reduced motion
+- [x] Smooth scroll wired, respecting reduced motion
 
 ## 5. Phase 2: 3D core (per HERO.md)
 - [ ] Procedural die, materials, lighting, environment

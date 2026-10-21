@@ -45,7 +45,10 @@ ${nav}
 <main id="main" tabindex="-1">
 ${body}</main>
 ${fill(footer, { year })}<script src="/assets/vendor/gsap-3.13.0.min.js" defer></script>
+<script src="/assets/vendor/ScrollTrigger-3.13.0.min.js" defer></script>
+<script src="/assets/vendor/lenis-1.3.27.min.js" defer></script>
 <script src="/assets/js/motion.js" defer></script>
+<script src="/assets/js/smooth.js" defer></script>
 <script src="/assets/js/main.js" defer></script>
 </body>
 </html>
