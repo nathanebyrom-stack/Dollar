@@ -23,7 +23,7 @@ Steps 3 onwards replaced by Jenny, 18 Oct 2026, to follow DOLLAR-SHOWCASE-PLAN.m
 - [x] Header and footer use src/assets/brand/34-automation-plate.svg
 - [x] Space Grotesk (display) and IBM Plex Mono (labels) self-hosted and wired in; Chakra Petch kept for the wordmark only
 - [x] Three.js, GSAP ScrollTrigger and Lenis vendored with vendor/README.md
-- [ ] /work/ index route added to pages.json, header and footer
+- [x] /work/ index route added to pages.json, header and footer
 - [ ] Smooth scroll wired, respecting reduced motion
 
 ## 5. Phase 2: 3D core (per HERO.md)

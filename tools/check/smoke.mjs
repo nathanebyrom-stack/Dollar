@@ -101,6 +101,7 @@ async function checkPage(route, viewport, label, extra = {}) {
     innerWidth: window.innerWidth,
     csp: window.__csp,
     hrefs: [...document.querySelectorAll('a[href]')].map((a) => a.getAttribute('href')).filter((h) => h.startsWith('/') && !h.startsWith('//')),
+    workLinks: ['.site-header', '.site-footer'].map((q) => !!document.querySelector(`${q} a[href="/work/"]`)),
     icons: [...document.querySelectorAll('link[rel~="icon"], link[rel="apple-touch-icon"]')].map((l) => l.getAttribute('href')),
     themeColor: document.querySelector('meta[name="theme-color"]')?.getAttribute('content'),
     logos: ['.site-header .site-logo img', '.site-footer .site-logo img'].map((q) => {
@@ -113,6 +114,8 @@ async function checkPage(route, viewport, label, extra = {}) {
   if (JSON.stringify([...info.preloads].sort()) !== JSON.stringify(wantPreloads)) problems.push(`font preloads are ${JSON.stringify(info.preloads)}, want ${JSON.stringify(wantPreloads)}`);
   for (const f of ['Space Grotesk 700', 'Inter 100 900']) if (!info.fonts.includes(f)) problems.push(`font not loaded: ${f} (loaded: ${info.fonts.join(', ')})`);
   if (info.fonts.some((f) => f.startsWith('Chakra Petch'))) problems.push('Chakra Petch loaded although the logo plate renders (it is fallback only)');
+  if (!info.workLinks[0]) problems.push('header has no link to /work/');
+  if (!info.workLinks[1]) problems.push('footer has no link to /work/');
   if (info.icons.length < 3) problems.push(`expected svg, png and apple-touch icon links, found ${info.icons.length}`);
   if (info.themeColor?.toLowerCase() !== '#0c0e11') problems.push(`theme-color is ${info.themeColor}, want #0C0E11`);
   info.logos.forEach((l, i) => {
