@@ -11,6 +11,35 @@
 .scene-stage canvas { display: block; width: 100%; height: 100%; opacity: 0; transition: opacity var(--dur-slow) var(--ease-out); }
 .scene-stage canvas.is-ready { opacity: 1; }
 
+/* The die frame: CSS decides where the die sits and how big it is. The pre-rendered stills fill this square, and the
+   live 3D camera is derived from its measured rectangle (stage.js measureLayout), so a still and the live die line
+   up exactly. --die is the height of the die's front face; each still shows it at half the image width. */
+.scene-stage { --die: min(38vh, 26vw); --die-x: 64vw; --die-y: 50vh; --die-shift: 10vw; }
+@media (max-width: 899px) {
+  /* Phones: centred, and below the stacked header (13rem) so the menu never covers it. */
+  .scene-stage { --die: min(27vh, 56vw); --die-x: 50vw; --die-y: max(46svh, calc(13rem + var(--die) * 0.5 + 1.25rem)); --die-shift: 0px; }
+}
+.die-frame {
+  position: absolute; left: calc(var(--die-x) - var(--die)); top: calc(var(--die-y) - var(--die));
+  width: calc(var(--die) * 2); height: calc(var(--die) * 2);
+  transition: opacity var(--dur-slow) var(--ease-out), transform var(--dur-slow) var(--ease-out);
+}
+.die-still { position: absolute; inset: 0; opacity: 0; transition: opacity var(--dur-slow) var(--ease-out); }
+.die-still.is-active { opacity: 1; }
+.die-still img { display: block; width: 100%; height: 100%; }
+/* Once the live die has taken over, the still behind it goes (kept laid out, so it can still be measured). */
+.scene-live .die-frame { opacity: 0; visibility: hidden; transition: opacity var(--dur-slow) var(--ease-out), visibility 0s linear var(--dur-slow); }
+
+/* Low tier and reduced motion (stills.js): the die face changes by crossfade, the frame moves right for Services
+   and fades out for Work. No orbit, no roll. */
+.die-frame.is-services { transform: translateX(var(--die-shift)); }
+.die-frame.is-away { opacity: 0; }
+@media (prefers-reduced-motion: reduce) {
+  /* base.css switches every transition off for reduced motion; the face change is meant to be a crossfade, so these
+     two opt back in. Opacity only: nothing slides or scales. */
+  .die-still, .die-frame { transition: opacity 0.5s ease !important; }
+}
+
 /* Page content sits above the stage. */
 body[data-scene] main, body[data-scene] .site-footer { position: relative; z-index: 1; }
 
@@ -33,4 +62,7 @@ body[data-scene] main, body[data-scene] .site-footer { position: relative; z-ind
 .scene-on .scene-services { min-height: 100svh; display: grid; align-content: center; }
 .scene-on .service-panels { gap: 0; }
 .scene-on .service-panel { grid-area: 1 / 1; visibility: hidden; opacity: 0; }
+/* On the Low path the panel for the current face is shown by class and crossfades (the live page animates them with GSAP). */
+html[data-tier="low"] .service-panel { transition: opacity var(--dur-slow) var(--ease-out), visibility 0s linear var(--dur-slow); }
+html[data-tier="low"] .service-panel.is-active { visibility: visible; opacity: 1; transition: opacity var(--dur-slow) var(--ease-out), visibility 0s; }
 @media (max-width: 899px) { .scene-on .scene-services { align-content: end; padding-bottom: var(--space-8); } }

@@ -37,19 +37,25 @@ function readFalloff(stageEl) {
   };
 }
 
-export async function start({ tier: initialTier, forced, scene: sceneName }) {
+// ?still=<name> renders one face square-on on a transparent canvas for tools/stills (not a visitor feature).
+const STILLS = { '34': { roll: 0, face: 'front' }, 'web-design': { roll: 1, face: 'top' }, 'marketing': { roll: 2, face: 'back' }, 'workflow-automation': { roll: 3, face: 'bottom' } };
+
+export async function start({ tier: initialTier, forced, scene: sceneName, still: stillName, onLow }) {
+  const stillSpec = stillName ? STILLS[stillName] : null;
+  if (stillName && !stillSpec) throw new Error(`unknown still "${stillName}"`);
   const gsap = window.gsap;
   const stageEl = document.querySelector('.scene-stage');
   if (!stageEl) throw new Error('scene stage element missing');
   let tier = initialTier;
 
   const header = document.querySelector('.site-header');
+  const frame = stageEl.querySelector('.die-frame'); // CSS decides where the die sits; the camera conforms (see measureLayout)
   const canvas = document.createElement('canvas');
   canvas.setAttribute('aria-hidden', 'true');
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
   renderer.setClearColor(0x000000, 0);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 0; // the Arrival ramps this up from black
+  renderer.toneMappingExposure = 1;
   let shaderFailed = false;
   renderer.debug.onShaderError = () => { shaderFailed = true; };
 
@@ -70,9 +76,15 @@ export async function start({ tier: initialTier, forced, scene: sceneName }) {
   // Everything the scroll timelines drive. glow is per engraved face, 0..1.
   const state = {
     azHero: 0, azPin: 0, // the camera azimuth is their sum: each timeline owns one, so a rewind never clobbers the other
-    scrollDolly: 1, arrivalDolly: 1.14, shift: 0, yawMix: 0, roll: 0, fade: 0,
-    exposure: 0, rim: 0, glow: { front: 0, top: 0, back: 0, bottom: 0 },
+    scrollDolly: 1, shift: 0, yawMix: 0, roll: 0, fade: 0,
+    // The pre-rendered still is already on screen, so the live die starts from the same look (exposure 1, "34" lit)
+    // and the Arrival is the rim light sweeping across the bevels, not a fade up from black.
+    exposure: 1, rim: 0.55, glow: { front: 1, top: 0, back: 0, bottom: 0 },
   };
+  if (stillSpec) { // one face, square-on, lit as at rest
+    state.rim = 1; state.yawMix = 1; state.roll = stillSpec.roll;
+    state.glow = { front: 0, top: 0, back: 0, bottom: 0, [stillSpec.face]: 1 };
+  }
 
   /* ---- Size and layout ---- */
   const size = { w: 0, h: 0 };
@@ -80,32 +92,45 @@ export async function start({ tier: initialTier, forced, scene: sceneName }) {
   let post = null; // { composer, render, setSize, ... } on High
   const pixelRatio = () => Math.min(window.devicePixelRatio || 1, tier === 'high' ? 2 : 1.5);
 
+  // Where the die sits and how big it is, in CSS pixels: the centre of the frame and half its width (the face height).
+  // CSS owns this (scenes.css), so the pre-rendered stills and the live die can never disagree.
+  let layout = { cx: 0, cy: 0, die: 1 };
+  function measureLayout() {
+    if (stillSpec) { layout = { cx: size.w / 2, cy: size.h / 2, die: size.h / 2 }; return; }
+    const r = frame ? frame.getBoundingClientRect() : null;
+    if (r && r.width > 0) { layout = { cx: r.left + r.width / 2, cy: r.top + r.height / 2, die: r.width / 2 }; return; }
+    // No frame in the markup: a sensible default.
+    const wide = size.w >= 900;
+    const headerH = header ? header.offsetHeight : 0;
+    layout = wide
+      ? { cx: size.w * 0.64, cy: size.h / 2, die: Math.min(size.h * 0.38, size.w * 0.26) }
+      : { cx: size.w / 2, cy: headerH + 0.34 * (size.h - headerH), die: Math.min(size.h * 0.27, size.w * 0.56) };
+  }
+
   function resize() {
     const w = stageEl.clientWidth;
     const h = stageEl.clientHeight;
     if (!w || !h || (w === size.w && h === size.h)) return;
     size.w = w; size.h = h;
-    renderer.setPixelRatio(pixelRatio());
+    renderer.setPixelRatio(stillSpec ? 1 : pixelRatio());
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     falloff = readFalloff(stageEl);
+    measureLayout();
     if (post) { post.setSize(w, h, pixelRatio()); post.setFalloffCentre(falloff.x, falloff.y); }
   }
 
-  // Desktop: die sits right of centre, text on the left. Phones: die in the upper part, text below it.
+  const TAN_HALF_FOV = Math.tan(15 * Math.PI / 180); // the camera's vertical fov is 30 degrees
   function applyLayout(az) {
-    // The die scales with viewport height, so on narrower desktops it is pulled back to leave room for the text column.
-    const narrow = size.w >= 900 ? Math.min(1.45, Math.max(1, 1280 / size.w)) : 1;
-    const dist = (size.w / size.h >= 1 ? 5 : 5 / Math.pow(size.w / size.h, 0.55)) * narrow * state.arrivalDolly * state.scrollDolly;
+    // The die's front face is `layout.die` px tall: pick the distance that makes it so, then shift the view to its centre.
+    // The face is half a unit nearer the camera than the die's centre, hence the + 0.5.
+    const dist = (size.h / (2 * TAN_HALF_FOV * layout.die) + 0.5) * state.scrollDolly;
     const cosEl = Math.cos(ELEVATION);
     camera.position.set(Math.sin(az) * cosEl * dist, Math.sin(ELEVATION) * dist, Math.cos(az) * cosEl * dist);
     camera.lookAt(0, 0, 0);
-    const wide = size.w >= 900;
-    const offX = wide ? -size.w * (0.14 + 0.10 * state.shift) : 0;
-    // Phones: centre the die in the space below the (stacked, tall) header, so the menu never covers it.
-    const headerH = header ? header.offsetHeight : 0;
-    const offY = wide ? 0 : size.h / 2 - (headerH + 0.34 * (size.h - headerH));
-    camera.setViewOffset(size.w, size.h, offX, offY, size.w, size.h);
+    // Services moves the die further right on desktop; phones keep it centred.
+    const shiftPx = size.w >= 900 ? size.w * 0.10 * state.shift : 0;
+    camera.setViewOffset(size.w, size.h, size.w / 2 - layout.cx - shiftPx, size.h / 2 - layout.cy, size.w, size.h);
   }
 
   /* ---- Pointer tilt (High, fine pointers only) ---- */
@@ -123,17 +148,10 @@ export async function start({ tier: initialTier, forced, scene: sceneName }) {
   let lastT = 0;
   let guard = null; // { elapsed, total, n } while measuring frame times after the Arrival
   let disposed = false;
+  let timelines = null; // the gsap context holding the scroll timelines, so they can be reverted
 
-  function render(timeMs) {
-    const t = timeMs / 1000;
-    const dt = lastT ? Math.min(t - lastT, 0.25) : 0.016;
-    lastT = t;
-
-    resize();
-    const k = Math.min(1, dt * 4);
-    tilt.x += (tiltTarget.x - tilt.x) * k;
-    tilt.y += (tiltTarget.y - tilt.y) * k;
-
+  // Position the die, lights and camera for time `t` (seconds) from `state`. Pure placement: no drawing.
+  function place(t) {
     const az = state.azHero + state.azPin;
     die.root.rotation.y = az;
     die.tilt.rotation.set(tilt.x + Math.sin(t * DRIFT.x[1]) * DRIFT.x[0], tilt.y + Math.sin(t * DRIFT.y[1]) * DRIFT.y[0], 0);
@@ -144,6 +162,18 @@ export async function start({ tier: initialTier, forced, scene: sceneName }) {
     lights.setRimSweep(state.rim);
     renderer.toneMappingExposure = state.exposure;
     applyLayout(az);
+  }
+
+  function render(timeMs) {
+    const t = timeMs / 1000;
+    const dt = lastT ? Math.min(t - lastT, 0.25) : 0.016;
+    lastT = t;
+
+    resize();
+    const k = Math.min(1, dt * 4);
+    tilt.x += (tiltTarget.x - tilt.x) * k;
+    tilt.y += (tiltTarget.y - tilt.y) * k;
+    place(t);
 
     if (post) post.render(); else renderer.render(scene, camera);
     frames++;
@@ -173,7 +203,7 @@ export async function start({ tier: initialTier, forced, scene: sceneName }) {
     for (const e of entries) (e.isIntersecting ? visible.add(e.target) : visible.delete(e.target));
     updateLoop();
   });
-  document.querySelectorAll('[data-scene-active]').forEach((el) => io.observe(el));
+  if (!stillSpec) document.querySelectorAll('[data-scene-active]').forEach((el) => io.observe(el));
   document.addEventListener('visibilitychange', updateLoop);
 
   /* ---- Tier changes (only ever downwards) ---- */
@@ -199,6 +229,10 @@ export async function start({ tier: initialTier, forced, scene: sceneName }) {
     tier = 'low';
     setTierAttr();
     dispose();
+    // The live scroll timelines and their pin must go before the Low controller builds its own.
+    if (timelines) { timelines.revert(); timelines = null; }
+    html.classList.remove('scene-on', 'scene-live');
+    if (onLow) onLow();
   }
 
   function dispose() {
@@ -217,7 +251,7 @@ export async function start({ tier: initialTier, forced, scene: sceneName }) {
   /* ---- Mount ---- */
   stageEl.appendChild(canvas);
   resize();
-  if (tier === 'high') {
+  if (tier === 'high' && !stillSpec) {
     const mod = await import('./post.js');
     post = mod.createComposer({ renderer, scene, camera, width: size.w, height: size.h, pixelRatio: pixelRatio(), falloff });
   }
@@ -225,23 +259,30 @@ export async function start({ tier: initialTier, forced, scene: sceneName }) {
 
   function onFirstFrame() {
     canvas.classList.add('is-ready');
-    html.classList.add('scene-on');
-    // Arrival (HERO.md): resolve out of black while the rim light sweeps across the bevels. Heavy and precise: no bounce.
+    html.classList.add('scene-on', 'scene-live'); // scene-live hides the pre-rendered still behind the live die
+    // Arrival (HERO.md): the die is already on screen as its still; the live one takes over and the rim light
+    // sweeps across the bevels. Heavy and precise: no bounce.
     gsap.timeline({ defaults: { ease: 'power2.out' } })
-      .to(state, { exposure: 1, duration: 1.4 }, 0)
       .to(state, { rim: 1, duration: 1.8, ease: 'power2.inOut' }, 0)
-      .to(state, { arrivalDolly: 1, duration: 1.9, ease: 'power3.out' }, 0)
-      .to(state.glow, { front: 1, duration: 1.2 }, 0.4)
       .call(() => { if (!forced) guard = { elapsed: 0, total: 0, n: 0 }; }, null, 1.5);
     if (sceneName === 'home') {
       import('./timeline-home.js')
-        .then((m) => m.buildHomeTimelines({ state, tier }))
+        .then((m) => { if (!disposed) timelines = m.buildHomeTimelines({ state, tier }); })
         .catch((err) => console.error('Scene: scroll timelines failed to build', err));
     }
   }
 
   // Compile every shader before the first visible frame: a failure drops the tier instead of showing a blank hero.
   renderer.compile(scene, camera);
+
+  if (stillSpec) {
+    // tools/stills: draw once, deterministically (t = 0: no drift, no tilt), and hand back a transparent PNG.
+    // The read must happen in the same task as the draw, because the drawing buffer is not preserved.
+    window.__still = () => { resize(); place(0); renderer.render(scene, camera); return canvas.toDataURL('image/png'); };
+    resize(); place(0); renderer.render(scene, camera); renderer.render(scene, camera);
+    window.__stillReady = true;
+    return { state, dispose };
+  }
 
   updateLoop();
   window.__scene = { state, die, get tier() { return tier; }, get frames() { return frames; }, get post() { return post; }, camera, renderer, dropTier };

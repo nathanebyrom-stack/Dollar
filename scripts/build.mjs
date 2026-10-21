@@ -17,6 +17,8 @@ const head = read('partials/head.html');
 const header = read('partials/header.html');
 const footer = read('partials/footer.html');
 const year = String(new Date().getFullYear());
+// Per-scene markup inside the fixed stage layer (the pre-rendered die stills); empty if a scene has none.
+const stage = (scene) => (existsSync(join(src, `partials/stage-${scene}.html`)) ? read(`partials/stage-${scene}.html`) : '');
 
 rmSync(dist, { recursive: true, force: true });
 mkdirSync(dist, { recursive: true });
@@ -42,7 +44,7 @@ ${fill(head, {
   scenes: page.scene ? '<link rel="stylesheet" href="/assets/css/scenes.css">\n' : '',
 })}</head>
 <body data-page="${page.nav || 'none'}"${page.scene ? ` data-scene="${page.scene}"` : ''}>
-${page.scene ? '<div class="scene-stage" aria-hidden="true"></div>\n' : ''}${nav}
+${page.scene ? `<div class="scene-stage" aria-hidden="true">\n${stage(page.scene)}</div>\n` : ''}${nav}
 <main id="main" tabindex="-1">
 ${body}</main>
 ${fill(footer, { year })}<script src="/assets/vendor/gsap-3.13.0.min.js" defer></script>

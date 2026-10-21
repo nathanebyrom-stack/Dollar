@@ -29,8 +29,8 @@ Steps 3 onwards replaced by Jenny, 18 Oct 2026, to follow DOLLAR-SHOWCASE-PLAN.m
 ## 5. Phase 2: 3D core (per HERO.md)
 - [x] Procedural die, materials, lighting, environment
 - [x] Scroll camera and Services face rolls
-- [ ] Quality tiers (High / Mid / Low) and no-WebGL path
-- [ ] Reduced-motion path with pre-rendered stills
+- [x] Quality tiers (High / Mid / Low) and no-WebGL path
+- [x] Reduced-motion path with pre-rendered stills
 
 ## 6. Phase 3: Work gallery
 - [ ] Capture pipeline (tools/capture) and Fluid Process UK recordings

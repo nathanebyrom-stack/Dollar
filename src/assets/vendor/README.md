@@ -36,15 +36,15 @@ Only the addons the scene needs are included (ARCHITECTURE §4), plus the files 
 
 ## Size against the budget
 
-ARCHITECTURE §12 budgets the 3D JavaScript (Three core, addons and scene modules) at 200 KB gzip, fetched after first paint. Measured on 21 Oct 2026, with the Phase 2 scene modules in place:
+ARCHITECTURE §12 budgets the 3D JavaScript (Three core, addons and scene modules) at 200 KB gzip, fetched after first paint. Measured on 21 Oct 2026, with the Phase 2 scene modules in place (re-measured after the stills work):
 
 | | raw KB | gzip-9 KB | Brotli-11 KB |
 |---|---|---|---|
 | Three.js and addons (12 files) | 762.1 | 197.5 | 164.1 |
-| Scene modules, `assets/js/scene/` (9 files) | 37.5 | 15.6 | 13.4 |
-| **All 3D JavaScript** | 799.6 | **213.1** | **177.5** |
+| Live scene modules, `assets/js/scene/` (9 files) | 41.6 | 17.1 | 14.7 |
+| **All 3D JavaScript** | 803.7 | **214.6** | **178.8** |
 
-So the total is 13 KB over budget if the transfer is gzip and 22 KB under if it is Brotli at its best level. Netlify serves Brotli, but its compression level is not documented, so the real transfer sits between the two and this is not settled. Measure it from the deployed preview (`curl -sH 'accept-encoding: br' -o /dev/null -w '%{size_download}'` on each file). If it is over, build a tree-shaken Three.js bundle holding only the classes the scene uses (still vendored and committed, still no runtime bundler). The bloom addon was dropped in Phase 2 (the engraving glow is baked into the emissive map), which already saved about 2 KB gzip.
+So the total is about 15 KB over budget if the transfer is gzip and about 21 KB under if it is Brotli at its best level. (`scene/stills.js`, 2.1 KB gzip, is the Low path only and is not part of this.) Netlify serves Brotli, but its compression level is not documented, so the real transfer sits between the two and this is not settled. Measure it from the deployed preview (`curl -sH 'accept-encoding: br' -o /dev/null -w '%{size_download}'` on each file). If it is over, build a tree-shaken Three.js bundle holding only the classes the scene uses (still vendored and committed, still no runtime bundler). The bloom addon was dropped in Phase 2 (the engraving glow is baked into the emissive map), which already saved about 2 KB gzip.
 
 ## Cache
 

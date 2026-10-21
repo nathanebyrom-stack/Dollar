@@ -179,31 +179,120 @@ async function sceneChecks() {
     }
   }
 
-  { // Default detection on a software renderer, reduced motion and no-JS all give the plain page (Low).
-    for (const [name, opts, query] of [['software renderer defaults to Low', {}, ''], ['reduced motion is Low', { reducedMotion: true }, '']]) {
-      const t = await open(query, opts);
-      await t.page.waitForTimeout(2500);
-      const r = await t.page.evaluate(() => ({ tier: document.documentElement.dataset.tier, canvas: !!document.querySelector('.scene-stage canvas'), on: document.documentElement.classList.contains('scene-on'), h1: document.querySelectorAll('h1').length }));
-      await report(name, t, r.tier === 'low' && !r.canvas && !r.on && r.h1 === 1, JSON.stringify(r));
-      await t.ctx.close();
-    }
-    const t = await open('', { js: false });
-    const r = await t.page.evaluate(() => ({ on: document.documentElement.classList.contains('scene-on'), panels: [...document.querySelectorAll('.service-panel')].every((p) => getComputedStyle(p).visibility === 'visible' && getComputedStyle(p).opacity === '1'), links: document.querySelectorAll('.service-panel a').length, heroH: Math.round(document.getElementById('scene-hero').getBoundingClientRect().height), vh: innerHeight }));
-    await report('no JS: every service panel is visible and nothing is pinned', t, !r.on && r.panels && r.links === 3 && r.heroH <= r.vh * 1.01, JSON.stringify(r));
+  // Where, as a scroll offset, a fraction of the pinned Services section falls.
+  const pinAt = (page, f) => page.evaluate((f) => { const t = ScrollTrigger.getAll().find((s) => s.pin); return t.start + (t.end - t.start) * f; }, f);
+  const activeFace = (page) => page.evaluate(() => [...document.querySelectorAll('.die-still.is-active')].map((e) => e.dataset.face).join(','));
+  const settle = (page) => page.waitForTimeout(900); // the crossfade classes flip at once; give ScrollTrigger a beat
+
+  { // Low path: no WebGL work, the stills carry the page and the faces change by crossfade (stills.js).
+    const t = await open('');
+    await t.page.waitForFunction(() => document.documentElement.classList.contains('scene-still'), null, { timeout: 15000 });
+    const r = await t.page.evaluate(() => ({
+      tier: document.documentElement.dataset.tier, canvas: !!document.querySelector('.scene-stage canvas'),
+      on: document.documentElement.classList.contains('scene-on'), pins: ScrollTrigger.getAll().filter((s) => s.pin).length,
+      stills: document.querySelectorAll('.die-still').length, frameVisible: getComputedStyle(document.querySelector('.die-frame')).visibility === 'visible',
+      front: (() => { const i = document.querySelector('.die-still[data-face="34"] img'); return i.complete && i.naturalWidth > 0; })(),
+    }));
+    await report('Low (software renderer): stills shown, no canvas, one pin', t, r.tier === 'low' && !r.canvas && r.on && r.pins === 1 && r.stills === 4 && r.frameVisible && r.front, JSON.stringify(r));
+
+    const faces = [];
+    for (const f of [0, 0.34, 0.6, 0.88]) { await t.page.evaluate((y) => scrollTo(0, y), f === 0 ? 0 : await pinAt(t.page, f)); await settle(t.page); faces.push(await activeFace(t.page)); }
+    await report('Low: scrolling the pin steps the face 34 > web > marketing > automation', t, faces.join(' | ') === '34 | web-design | marketing | workflow-automation', faces.join(' | '));
+    const states = await t.page.evaluate(() => ({ panel: [...document.querySelectorAll('.service-panel')].map((p) => p.classList.contains('is-active')), services: document.querySelector('.die-frame').classList.contains('is-services') }));
+    await report('Low: the last service panel is shown and the die has moved over for Services', t, states.panel.join() === 'false,false,true' && states.services, JSON.stringify(states));
+    await t.page.evaluate(() => document.getElementById('scene-work').scrollIntoView());
+    await settle(t.page);
+    const gone = await t.page.evaluate(() => document.querySelector('.die-frame').classList.contains('is-away'));
+    await report('Low: the die fades away when Work arrives', t, gone);
     await t.ctx.close();
   }
 
-  { // Failure paths land on the plain page without errors.
+  { // Reduced motion: nothing pinned or scrubbed or moved; the face still changes by crossfade (opacity only).
+    const t = await open('', { reducedMotion: true });
+    await t.page.waitForFunction(() => document.documentElement.classList.contains('scene-still'), null, { timeout: 15000 });
+    const r = await t.page.evaluate(() => ({
+      tier: document.documentElement.dataset.tier, canvas: !!document.querySelector('.scene-stage canvas'),
+      on: document.documentElement.classList.contains('scene-on'), pins: ScrollTrigger.getAll().filter((s) => s.pin).length, lenis: !!window.__lenis,
+      panelsVisible: [...document.querySelectorAll('.service-panel')].every((p) => getComputedStyle(p).visibility === 'visible' && getComputedStyle(p).opacity === '1'),
+      fade: getComputedStyle(document.querySelector('.die-still')).transitionDuration, h1: document.querySelectorAll('h1').length,
+    }));
+    await report('Reduced motion: stills, no pin, no Lenis, services listed in full, 0.5s opacity crossfade', t, r.tier === 'low' && !r.canvas && !r.on && r.pins === 0 && !r.lenis && r.panelsVisible && r.fade === '0.5s' && r.h1 === 1, JSON.stringify(r));
+    const faces = [];
+    for (const i of [0, 1, 2]) {
+      await t.page.evaluate((i) => { const p = document.querySelectorAll('.service-panel')[i]; scrollTo(0, p.getBoundingClientRect().top + scrollY - innerHeight / 2 + p.offsetHeight / 2); }, i);
+      await settle(t.page); faces.push(await activeFace(t.page));
+    }
+    await report('Reduced motion: each face crossfades in as its panel reaches the middle of the screen', t, faces.join(' | ') === 'web-design | marketing | workflow-automation', faces.join(' | '));
+    await t.ctx.close();
+  }
+
+  { // ?tier=low forced, and a browser with no WebGL at all: both are the stills path, with no console errors.
+    const t = await open('?tier=low');
+    await t.page.waitForFunction(() => document.documentElement.classList.contains('scene-still'), null, { timeout: 15000 });
+    let r = await t.page.evaluate(() => ({ tier: document.documentElement.dataset.tier, canvas: !!document.querySelector('.scene-stage canvas'), stills: document.querySelectorAll('.die-still').length }));
+    await report('?tier=low forced: stills, no canvas', t, r.tier === 'low' && !r.canvas && r.stills === 4, JSON.stringify(r));
+    await t.ctx.close();
+
+    const nogl = await chromium.launch({ executablePath: findChromium(), args: ['--disable-3d-apis'] });
+    const ctx = await nogl.newContext({ viewport: { width: 1440, height: 900 } });
+    const page = await ctx.newPage();
+    const errors = [];
+    page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+    page.on('pageerror', (e) => errors.push(`page error: ${e.message}`));
+    await page.goto(base + '/', { waitUntil: 'load' });
+    await page.waitForFunction(() => document.documentElement.classList.contains('scene-still'), null, { timeout: 15000 });
+    r = await page.evaluate(() => ({ webgl: !!document.createElement('canvas').getContext('webgl2'), tier: document.documentElement.dataset.tier, canvas: !!document.querySelector('.scene-stage canvas'), stills: document.querySelectorAll('.die-still').length }));
+    if (!r.webgl && r.tier === 'low' && !r.canvas && r.stills === 4 && !errors.length) console.log('  ok   scene: no WebGL at all: stills, no canvas, no errors');
+    else { fail('scene: no WebGL at all falls back to the stills'); console.log(`       ${JSON.stringify({ ...r, errors })}`); }
+    await nogl.close();
+  }
+
+  { // JavaScript off: the "34" still is in the page itself and the services read in full.
+    const t = await open('', { js: false });
+    await t.page.waitForLoadState('load');
+    const r = await t.page.evaluate(() => ({
+      on: document.documentElement.classList.contains('scene-on'),
+      still: (() => { const i = document.querySelector('.die-still[data-face="34"] img'); return i.complete && i.naturalWidth > 0; })(),
+      stills: document.querySelectorAll('.die-still').length,
+      panels: [...document.querySelectorAll('.service-panel')].every((p) => getComputedStyle(p).visibility === 'visible' && getComputedStyle(p).opacity === '1'),
+      links: document.querySelectorAll('.service-panel a').length, heroH: Math.round(document.getElementById('scene-hero').getBoundingClientRect().height), vh: innerHeight,
+    }));
+    await report('no JS: the "34" still shows, every service panel is visible, nothing is pinned', t, !r.on && r.still && r.stills === 1 && r.panels && r.links === 3 && r.heroH <= r.vh * 1.01, JSON.stringify(r));
+    await t.ctx.close();
+  }
+
+  { // Live scene: the still hands over and visitors never download the other three.
+    const t = await open('?tier=high');
+    const fetched = [];
+    t.page.on('request', (rq) => { if (/\/die-(web-design|marketing|workflow-automation)-/.test(rq.url())) fetched.push(rq.url()); });
+    await started(t.page);
+    await t.page.waitForTimeout(1500);
+    const r = await t.page.evaluate(() => ({ live: document.documentElement.classList.contains('scene-live'), frame: getComputedStyle(document.querySelector('.die-frame')).visibility, stills: document.querySelectorAll('.die-still').length }));
+    await report('Live scene: the still hands over to the die and the other stills are never fetched', t, r.live && r.frame === 'hidden' && r.stills === 1 && fetched.length === 0, JSON.stringify({ ...r, fetched }));
+    await t.ctx.close();
+  }
+
+  { // Failure paths hand over to the stills, with exactly one pin (the live timelines must be reverted, not left to fight).
+    const fellBack = (page) => page.evaluate(() => ({
+      tier: document.documentElement.dataset.tier, canvas: !!document.querySelector('.scene-stage canvas'),
+      live: document.documentElement.classList.contains('scene-live'), still: document.documentElement.classList.contains('scene-still'),
+      pins: ScrollTrigger.getAll().filter((s) => s.pin).length, stills: document.querySelectorAll('.die-still').length,
+      frame: getComputedStyle(document.querySelector('.die-frame')).visibility,
+    }));
+    const ok = (r) => r.tier === 'low' && !r.canvas && !r.live && r.still && r.pins === 1 && r.stills === 4 && r.frame === 'visible';
+
     let t = await open('?tier=high');
     await started(t.page);
+    await t.page.waitForFunction(() => ScrollTrigger.getAll().some((s) => s.pin)); // the live timelines are built
     await t.page.evaluate(() => window.__scene.renderer.getContext().getExtension('WEBGL_lose_context').loseContext());
-    await t.page.waitForTimeout(800);
-    let r = await t.page.evaluate(() => ({ tier: document.documentElement.dataset.tier, canvas: !!document.querySelector('.scene-stage canvas') }));
-    await report('lost WebGL context falls back to the plain page', t, r.tier === 'low' && !r.canvas && t.warnings.some((w) => /context lost/.test(w)), JSON.stringify({ ...r, warnings: t.warnings }));
+    await t.page.waitForTimeout(1200);
+    let r = await fellBack(t.page);
+    await report('lost WebGL context hands over to the stills', t, ok(r) && t.warnings.some((w) => /context lost/.test(w)), JSON.stringify({ ...r, warnings: t.warnings }));
     await t.ctx.close();
 
     t = await open('?tier=high');
     await started(t.page);
+    await t.page.waitForFunction(() => ScrollTrigger.getAll().some((s) => s.pin));
     await t.page.evaluate(() => window.__scene.dropTier('test'));
     await t.page.waitForTimeout(800);
     const frames = await t.page.evaluate(() => window.__scene.frames);
@@ -211,9 +300,24 @@ async function sceneChecks() {
     r = await t.page.evaluate((f) => ({ tier: document.documentElement.dataset.tier, rendering: window.__scene.frames > f, canvas: !!document.querySelector('.scene-stage canvas') }), frames);
     await report('runtime drop High -> Mid keeps rendering', t, r.tier === 'mid' && r.rendering && r.canvas, JSON.stringify(r));
     await t.page.evaluate(() => window.__scene.dropTier('test'));
-    r = await t.page.evaluate(() => ({ tier: document.documentElement.dataset.tier, canvas: !!document.querySelector('.scene-stage canvas') }));
-    await report('runtime drop Mid -> Low removes the canvas', t, r.tier === 'low' && !r.canvas, JSON.stringify(r));
+    await t.page.waitForTimeout(1200);
+    r = await fellBack(t.page);
+    await report('runtime drop Mid -> Low hands over to the stills', t, ok(r), JSON.stringify(r));
     await t.ctx.close();
+
+    // The stage module itself fails to load (network, parse error): one console error, and the stills carry the page.
+    const ctx = await gl.newContext({ viewport: { width: 1440, height: 900 } });
+    const page = await ctx.newPage();
+    const errors = [];
+    page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+    await page.route('**/scene/stage.js', (rt) => rt.abort());
+    await page.goto(`${base}/?tier=high`, { waitUntil: 'load' });
+    await page.waitForFunction(() => document.documentElement.classList.contains('scene-still'), null, { timeout: 15000 });
+    r = await fellBack(page);
+    const logged = errors.filter((e) => /Scene: could not start/.test(e)).length;
+    if (ok(r) && logged === 1) console.log('  ok   scene: stage.js failing to load falls back to the stills with one logged error');
+    else { fail('scene: stage.js failing to load falls back to the stills'); console.log(`       ${JSON.stringify({ ...r, logged, errors })}`); }
+    await ctx.close();
   }
   await gl.close();
 }
