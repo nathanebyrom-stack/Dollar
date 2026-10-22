@@ -50,9 +50,9 @@ Steps 3 onwards replaced by Jenny, 18 Oct 2026, to follow DOLLAR-SHOWCASE-PLAN.m
 - [x] Moss & Memory (Concept, high-res photoreal section only)
 
 ## 9. Phase 6: About, Contact, Privacy
-- [ ] About structure with photo slot
+- [x] About structure with photo slot
 - [ ] Contact form working (Netlify Forms)
-- [ ] Privacy page structure (full UK GDPR text before launch)
+- [x] Privacy page structure (full UK GDPR text before launch)
 
 ## 10. Phase 7: Copy
 - [ ] Nathan's copy dropped in, humanized and slop-gated
