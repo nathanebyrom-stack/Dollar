@@ -59,9 +59,9 @@ Steps 3 onwards replaced by Jenny, 18 Oct 2026, to follow DOLLAR-SHOWCASE-PLAN.m
 - [ ] Edie fact-check passed
 
 ## 11. Phase 8: Quality pass and launch
-- [ ] SEO: titles, descriptions, Open Graph, sitemap, robots
-- [ ] Mobile speed: main content < 2.5 s; Lighthouse targets met
-- [ ] Accessibility: WCAG 2.1 AA
+- [x] SEO: titles, descriptions, Open Graph, sitemap, robots (the preview stays noindex until `site.indexable` is switched on at launch)
+- [x] Mobile speed: main content < 2.5 s; Lighthouse targets met (measured with placeholder copy and no clips: re-run after Phase 7)
+- [ ] Accessibility: WCAG 2.1 AA (automated axe pass is clean on every route and state; still to do: a manual screen-reader and keyboard walk-through, and zoom to 200%)
 - [ ] Chrome, Safari, Firefox, Edge, iOS, Android
 - [ ] Launch checklist complete
 - [ ] Nathan's written sign-off
