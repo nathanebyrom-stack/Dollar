@@ -51,7 +51,7 @@ Steps 3 onwards replaced by Jenny, 18 Oct 2026, to follow DOLLAR-SHOWCASE-PLAN.m
 
 ## 9. Phase 6: About, Contact, Privacy
 - [x] About structure with photo slot
-- [ ] Contact form working (Netlify Forms)
+- [x] Contact form working (Netlify Forms)
 - [x] Privacy page structure (full UK GDPR text before launch)
 
 ## 10. Phase 7: Copy
