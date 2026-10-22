@@ -6,7 +6,7 @@
    moment the face arrives at the front (ARCHITECTURE section 5), so no per-face rotation is needed here.
 
    Everything is deterministic (seeded noise, no Math.random) so the pre-rendered stills match the live die. */
-import * as THREE from '../../vendor/three-r186/three.module.min.js';
+import * as THREE from '../../vendor/three-r186/three.min.js';
 
 // Face name -> source image and the share of the face width the glyph fills.
 const GLYPHS = {

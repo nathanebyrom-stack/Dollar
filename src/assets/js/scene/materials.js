@@ -3,7 +3,7 @@
 
    High uses MeshPhysicalMaterial (anisotropic bevels); Mid uses MeshStandardMaterial. Every material is
    transparent at opacity 1 so the whole die can fade out when the Work section arrives. */
-import * as THREE from '../../vendor/three-r186/three.module.min.js';
+import * as THREE from '../../vendor/three-r186/three.min.js';
 
 // emissiveIntensity of an engraving at full glow. HERO.md: "faintly": the symbol reads as a lit inlay in the metal,
 // not a white print. The halo around it is baked into the emissive map (engravings.js).

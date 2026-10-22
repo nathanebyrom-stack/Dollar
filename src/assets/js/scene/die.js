@@ -8,7 +8,7 @@
             the camera orbits (yawMix 0) and turns to face it for the Services rolls (yawMix 1)
         roll  rotation.x = quarter-turns: about the camera's right-hand axis once yawMix is 1
          mesh */
-import * as THREE from '../../vendor/three-r186/three.module.min.js';
+import * as THREE from '../../vendor/three-r186/three.min.js';
 import { RoundedBoxGeometry } from '../../vendor/three-r186/addons/geometries/RoundedBoxGeometry.js';
 import { createMaterials, FACE_INDEX, GLOW_MAX } from './materials.js';
 

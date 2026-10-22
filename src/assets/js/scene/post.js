@@ -7,7 +7,7 @@
    plus tone mapping do not combine cleanly with a transparent canvas. So on High the canvas is opaque, and this
    pass reproduces the CSS `--bg-falloff` gradient from the same two colours and centre, read from the tokens.
    Grain is per-pixel random noise changing every frame, never a regular or tiled pattern. */
-import * as THREE from '../../vendor/three-r186/three.module.min.js';
+import * as THREE from '../../vendor/three-r186/three.min.js';
 import { EffectComposer } from '../../vendor/three-r186/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from '../../vendor/three-r186/addons/postprocessing/RenderPass.js';
 import { OutputPass } from '../../vendor/three-r186/addons/postprocessing/OutputPass.js';

@@ -89,16 +89,26 @@ export function start({ scene }) {
     // Pinned, as on the live page: scroll steps through the faces and their panels.
     window.gsap.registerPlugin(window.ScrollTrigger);
     html.classList.add('scene-on');
+    let pin = null;
     const context = window.gsap.context(() => {
-      window.ScrollTrigger.create({
+      pin = window.ScrollTrigger.create({
         trigger: services, start: 'top top', end: '+=300%', pin: true, anticipatePin: 1,
         onUpdate: (self) => setStep(stepFor(self.progress)),
       });
       window.ScrollTrigger.create({ trigger: services, start: 'top 60%', onEnter: () => inServices(true), onLeaveBack: () => inServices(false) });
       if (work) window.ScrollTrigger.create({ trigger: work, start: 'top 80%', onEnter: () => away(true), onLeaveBack: () => away(false) });
     });
+    // Every panel stays focusable (scenes.css): focusing one moves the page to the step that shows it (the middle of each step).
+    const MID = [0.35, 0.6, 0.87];
+    const reveal = (event) => {
+      const i = panels.findIndex((p) => p.contains(event.target));
+      if (i === -1 || !pin) return;
+      const y = pin.start + MID[i] * (pin.end - pin.start);
+      if (window.__lenis) window.__lenis.scrollTo(y, { immediate: true }); else window.scrollTo(0, y);
+    };
+    services.addEventListener('focusin', reveal);
     window.ScrollTrigger.refresh();
-    cleanups.push(() => { context.revert(); html.classList.remove('scene-on'); });
+    cleanups.push(() => { services.removeEventListener('focusin', reveal); context.revert(); html.classList.remove('scene-on'); });
   } else {
     // Reduced motion (or no GSAP): a thin band across the middle of the screen picks the face. Nothing scrubs or moves.
     const band = new IntersectionObserver((entries) => {

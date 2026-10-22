@@ -17,6 +17,8 @@ export function buildHomeTimelines({ state, tier }) {
   if (!gsap || !ScrollTrigger || !hero || !services) return null;
 
   // One context owns every tween and ScrollTrigger below, so stage.js can revert them all if the live scene is abandoned.
+  let panels = [];       // the service panels and the Services pin, set inside the context below, used by the focus handler after it
+  let servicesPin = null;
   const context = gsap.context(() => {
     const scrub = tier === 'high' ? 1 : true;
     const from = { immediateRender: false };
@@ -30,10 +32,11 @@ export function buildHomeTimelines({ state, tier }) {
          0-1.5   the die turns to face the camera ("34" forward), settling like a part on a fixture
          2-3.5   roll 1: Web design     4.5-6   roll 2: Marketing     7-8.5   roll 3: Workflow automation
        Each roll is a quarter-turn, then a hold; the matching panel slides in as its face seats. */
-    const panels = [...services.querySelectorAll('.service-panel')];
+    panels = [...services.querySelectorAll('.service-panel')];
     const tl = gsap.timeline({
       scrollTrigger: { trigger: services, start: 'top top', end: '+=300%', pin: true, anticipatePin: 1, invalidateOnRefresh: true, scrub },
     });
+    servicesPin = tl.scrollTrigger;
     tl.fromTo(state, { azPin: 0 }, { azPin: QUARTER, duration: 10, ease: 'none', ...from }, 0)
       .fromTo(state, { yawMix: 0 }, { yawMix: 1, duration: 1.5, ease: 'power3.inOut', ...from }, 0)
       .fromTo(state, { shift: 0 }, { shift: 1, duration: 2, ease: 'power2.inOut', ...from }, 0);
@@ -47,12 +50,12 @@ export function buildHomeTimelines({ state, tier }) {
         .fromTo(state.glow, { [arriving]: 0 }, { [arriving]: 1, duration: 0.9, ease: 'power2.out', ...from }, at + 0.9);
     });
 
-    // Panels: each is hidden by CSS under .scene-on and slides in from the left as its face arrives.
+    // Panels: each is invisible (not hidden from assistive tech) under .scene-on and slides in from the left as its face arrives.
     [[3.0, 4.3], [5.4, 6.9], [8.0, null]].forEach(([inAt, outAt], i) => {
       const panel = panels[i];
       if (!panel) return;
-      tl.fromTo(panel, { autoAlpha: 0, x: -24 }, { autoAlpha: 1, x: 0, duration: 0.8, ease: 'power3.out', ...from }, inAt);
-      if (outAt !== null) tl.to(panel, { autoAlpha: 0, x: -24, duration: 0.6, ease: 'power2.in' }, outAt);
+      tl.fromTo(panel, { opacity: 0, x: -24, pointerEvents: 'none' }, { opacity: 1, x: 0, pointerEvents: 'auto', duration: 0.8, ease: 'power3.out', ...from }, inAt);
+      if (outAt !== null) tl.to(panel, { opacity: 0, x: -24, pointerEvents: 'none', duration: 0.6, ease: 'power2.in' }, outAt);
     });
 
     /* Scene 3: the die hands over to the Work section: shrinks and fades as it arrives. */
@@ -65,8 +68,19 @@ export function buildHomeTimelines({ state, tier }) {
 
   });
 
+  // Every panel stays focusable (see scenes.css). When keyboard focus reaches a panel's link, move the page to the middle of
+  // the hold where that panel is showing (the times match the panel tweens above, on the 10-unit timeline).
+  const HOLD = [4.0, 6.5, 9.0];
+  const reveal = (event) => {
+    const i = panels.findIndex((p) => p.contains(event.target));
+    if (i === -1 || !servicesPin) return;
+    const y = servicesPin.start + (HOLD[i] / 10) * (servicesPin.end - servicesPin.start);
+    if (window.__lenis) window.__lenis.scrollTo(y, { immediate: true }); else window.scrollTo(0, y);
+  };
+  services.addEventListener('focusin', reveal);
+
   ScrollTrigger.refresh();
-  return context;
+  return { revert() { services.removeEventListener('focusin', reveal); context.revert(); } };
 }
 
 /* Scene 3: the Work gallery, desktop only (D3: under 900 px the cards stay a plain vertical list). The section pins and

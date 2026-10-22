@@ -2,9 +2,13 @@
 //   cd tools && npm install && node vendor/vendor.mjs
 // Downloads each package from npm into a fresh temp folder, copies or minifies the files we use, and
 // rewrites Three.js imports to relative paths so no inline import map is needed (CSP: script-src 'self').
+// Three.js itself is TREE-SHAKEN: the script finds which classes the scene code (src/assets/js/scene/*.js, as `THREE.X`)
+// and the vendored addons (their `import { ... } from 'three'`) actually use, and bundles only those into one
+// three.min.js. About 30% smaller than shipping the whole library, which is what keeps the 3D JavaScript inside its
+// budget (ARCHITECTURE section 12). Rerun this script whenever the scene starts using a new Three.js class.
 // Nothing from the downloaded packages is ever executed. See src/assets/vendor/README.md for the output.
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, copyFileSync, existsSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, copyFileSync, existsSync, rmSync, readdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { gzipSync } from 'node:zlib';
 import { tmpdir } from 'node:os';
@@ -14,7 +18,7 @@ import { createRequire } from 'node:module';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const out = resolve(here, '..', '..', 'src', 'assets', 'vendor');
-const { transform } = createRequire(join(here, '..', 'package.json'))('esbuild');
+const { transform, build } = createRequire(join(here, '..', 'package.json'))('esbuild');
 
 const VERSIONS = { gsap: '3.13.0', three: '0.186.1', lenis: '1.3.27' };
 const THREE_DIR = 'three-r186';
@@ -68,7 +72,7 @@ copyStripped(join(lenis, 'dist', 'lenis.min.js'), join(out, `lenis-${VERSIONS.le
 copyFileSync(join(lenis, 'LICENSE'), join(out, 'LICENSE-lenis-MIT.txt'));
 record(`lenis-${VERSIONS.lenis}.min.js`, 'unmodified except the sourceMappingURL comment');
 
-// ---- Three.js: minify (r186 ships no .min.js) and rewrite imports ----
+// ---- Three.js: tree-shake the core (r186 ships no .min.js), minify and rewrite the addons' imports ----
 const three = fetchPackage('three', VERSIONS.three);
 const threeOut = join(out, THREE_DIR);
 rmSync(threeOut, { recursive: true, force: true });
@@ -78,11 +82,12 @@ copyFileSync(join(three, 'LICENSE'), join(threeOut, 'LICENSE.txt'));
 const minify = (code) => transform(code, { minify: true, format: 'esm', target: 'es2022', legalComments: 'inline' });
 const IMPORT_SPEC = /(\b(?:from|import)\s*)(['"])([^'"]+)\2/g;
 
-async function emit(srcFile, destRel, mapSpec, noteName) {
+async function emit(srcFile, destRel, mapSpec, noteName, inspect) {
   const dest = join(threeOut, destRel);
   mkdirSync(dirname(dest), { recursive: true });
   // Minify first: that strips comments (some contain example imports), so only real specifiers remain.
   const { code: minified } = await minify(readFileSync(srcFile, 'utf8'));
+  if (inspect) inspect(minified);
   const code = minified.replace(IMPORT_SPEC, (m, kw, q, spec) => `${kw}${q}${mapSpec(spec, dest)}${q}`);
   // No bare specifiers may survive: a bare 'three' would need an import map, which the CSP forbids.
   for (const m of code.matchAll(/(?:from|import)\s*["']([^"'.\/][^"']*)["']/g)) throw new Error(`Bare specifier "${m[1]}" left in ${destRel}`);
@@ -90,12 +95,10 @@ async function emit(srcFile, destRel, mapSpec, noteName) {
   record(`${THREE_DIR}/${destRel}`, noteName);
 }
 
-// Core: three.module.js imports ./three.core.js; point it at the .min.js names.
-await emit(join(three, 'build', 'three.core.js'), 'three.core.min.js', (s) => s, 'minified, otherwise unmodified');
-await emit(join(three, 'build', 'three.module.js'), 'three.module.min.js', (s) => (s === './three.core.js' ? './three.core.min.js' : s), 'minified; import of ./three.core.js renamed to ./three.core.min.js');
-
-// Addons: follow relative imports from the entries, rewriting bare 'three' to a relative path.
+// Addons: follow relative imports from the entries, rewriting bare 'three' to a relative path to the tree-shaken bundle,
+// and noting which Three.js names they import (the bundle must export them).
 const seen = new Set();
+const used = new Set();
 async function addon(rel) {
   if (seen.has(rel)) return;
   seen.add(rel);
@@ -103,13 +106,30 @@ async function addon(rel) {
   if (!existsSync(srcFile)) throw new Error(`Missing addon ${rel}`);
   const deps = [];
   await emit(srcFile, join('addons', rel), (spec, dest) => {
-    if (spec === 'three') return posix.relative(dirname(relative(threeOut, dest)).split('\\').join('/'), 'three.module.min.js');
+    if (spec === 'three') return posix.relative(dirname(relative(threeOut, dest)).split('\\').join('/'), 'three.min.js');
     if (spec.startsWith('.')) { deps.push(posix.normalize(posix.join(posix.dirname(rel), spec))); return spec; }
     throw new Error(`${rel} imports "${spec}", which is not relative or 'three'`);
-  }, "minified; bare 'three' import rewritten to a relative path");
+  }, "minified; bare 'three' import rewritten to the tree-shaken bundle", (code) => {
+    for (const m of code.matchAll(/import\s*\{([^}]*)\}\s*from\s*["']three["']/g)) m[1].split(',').map((n) => n.trim().split(/\s+as\s+/)[0]).filter(Boolean).forEach((n) => used.add(n));
+  });
   for (const d of deps) await addon(d);
 }
 for (const e of ADDON_ENTRIES) await addon(e);
+
+// The scene's own use of Three.js: `THREE.X` in the modules under src/assets/js/scene.
+const sceneDir = join(out, '..', 'js', 'scene');
+for (const f of readdirSync(sceneDir).filter((n) => n.endsWith('.js'))) {
+  for (const m of readFileSync(join(sceneDir, f), 'utf8').matchAll(/\bTHREE\.([A-Za-z0-9_]+)/g)) used.add(m[1]);
+}
+
+// Tree-shake: one bundle that exports exactly those names, from the real Three.js sources.
+const names = [...used].sort();
+const bundled = await build({
+  stdin: { contents: `export { ${names.join(', ')} } from './build/three.module.js';`, resolveDir: three },
+  bundle: true, format: 'esm', minify: true, treeShaking: true, legalComments: 'inline', target: 'es2022', write: false,
+});
+writeFileSync(join(threeOut, 'three.min.js'), bundled.outputFiles[0].contents);
+record(`${THREE_DIR}/three.min.js`, `tree-shaken: only the ${names.length} Three.js exports the scene and addons use (${names.length} of ~1000)`);
 
 rmSync(tmp, { recursive: true, force: true });
 

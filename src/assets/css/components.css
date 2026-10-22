@@ -21,14 +21,13 @@
 .work-card__video { display: block; width: 100%; height: auto; background: var(--color-bg); }
 .work-card__media--placeholder { display: grid; place-items: center; aspect-ratio: 16 / 10; padding: var(--space-4); border: 1px dashed var(--color-text-muted); text-align: center; }
 
-/* Play on tap: shown only where videos do not start by themselves (Low tier, reduced motion). */
+/* Play / Pause toggle on every recording, in every mode (WCAG 2.2.2: moving content that starts by itself can be paused).
+   It is also the Play button where videos do not start by themselves (Low tier, reduced motion). */
 .work-card__play {
-  position: absolute; right: var(--space-3); bottom: var(--space-3); z-index: 2; display: none;
+  position: absolute; right: var(--space-3); bottom: var(--space-3); z-index: 2; display: inline-block;
   padding: var(--space-2) var(--space-4); border: 1px solid var(--color-text); border-radius: var(--radius-pill);
   background: var(--color-bg); color: var(--color-text-strong); font: var(--weight-medium) var(--text-sm)/1 var(--font-body); cursor: pointer;
 }
-html[data-videos="tap"] .work-card__play { display: inline-block; }
-html[data-videos="tap"] .work-card__media.is-playing .work-card__play { display: none; }
 
 .work-card__body { display: grid; gap: var(--space-2); }
 .work-card__status { margin: 0; }

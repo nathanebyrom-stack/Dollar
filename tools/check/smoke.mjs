@@ -395,6 +395,31 @@ async function sceneChecks() {
       await t.ctx.close(); }
   }
 
+  // ---- Accessibility (Phase 8): everything reachable by keyboard, even in the pinned, stacked states ----
+  for (const [name, query] of [['Low path', ''], ['live 3D', '?tier=high']]) {
+    const t = await open(query);
+    if (query) await started(t.page);
+    await t.page.waitForFunction(() => ScrollTrigger.getAll().some((x) => x.pin), null, { timeout: 30000 });
+    await t.page.waitForTimeout(600);
+    const reached = [];
+    const shown = [];
+    await t.page.evaluate(() => document.getElementById('scene-hero').focus?.());
+    for (let i = 0; i < 60 && reached.length < 3; i++) {
+      await t.page.keyboard.press('Tab');
+      await t.page.waitForTimeout(150);
+      const at = await t.page.evaluate(() => { const a = document.activeElement; const p = a.closest && a.closest('.service-panel'); return p ? { href: a.getAttribute('href'), panel: [...document.querySelectorAll('.service-panel')].indexOf(p) } : null; });
+      if (at && !reached.includes(at.href)) {
+        reached.push(at.href);
+        await t.page.waitForTimeout(1600); // the page moves to the step that shows this panel
+        shown.push(await t.page.evaluate((i) => { const cs = getComputedStyle(document.querySelectorAll('.service-panel')[i]); return { opacity: +cs.opacity, events: cs.pointerEvents }; }, at.panel));
+      }
+    }
+    const inTree = await t.page.evaluate(() => [...document.querySelectorAll('.service-panel')].every((p) => getComputedStyle(p).visibility !== 'hidden' && getComputedStyle(p).display !== 'none'));
+    await report(`Services (${name}): all three service links are reachable by Tab, stay in the page, and each comes into view when focused`, t,
+      reached.join() === '/services/web-design/,/services/marketing/,/services/workflow-automation/' && inTree && shown.every((x) => x.opacity > 0.9 && x.events === 'auto'), JSON.stringify({ reached, shown, inTree }));
+    await t.ctx.close();
+  }
+
   // ---- Contact, About, Privacy (Phase 6) ----
   { // The contact form: structure Netlify Forms needs, accessible labels, a honeypot nobody can reach, and the whole round trip.
     const t = await open('contact/');
@@ -447,7 +472,7 @@ async function sceneChecks() {
     const r = await t.page.evaluate(() => ({ robots: document.querySelector('meta[name="robots"]')?.content, h1: document.querySelectorAll('h1').length, nav: document.querySelectorAll('[data-active], [aria-current="page"]').length }));
     const linked = [];
     for (const route of ['', 'contact/', 'about/', 'privacy/', 'work/']) { const html = await (await fetch(`${base}/${route}`)).text(); if (html.includes('href="/contact/thanks/')) linked.push(route || '/'); }
-    await report('Thanks page: noindex, one h1, and not linked from any page', t, r.robots === 'noindex' && r.h1 === 1 && linked.length === 0, JSON.stringify({ ...r, linked }));
+    await report('Thanks page: noindex, one h1, and not linked from any page', t, /^noindex/.test(r.robots) && r.h1 === 1 && linked.length === 0, JSON.stringify({ ...r, linked }));
     await t.ctx.close();
   }
 
@@ -509,6 +534,64 @@ async function sceneChecks() {
     let after = before;
     if (expect === 'tap') { await t.page.click('.case-visual .work-card__play'); await t.page.waitForTimeout(1500); after = await t.page.evaluate(() => ({ mode: document.documentElement.dataset.videos, playing: !document.querySelector('.case-visual video').paused, url: location.pathname })); }
     await report(`Moss & Memory: the recording uses ${name}`, t, before.mode === expect && (expect === 'view' ? before.playing : !before.playing && after.playing && after.url === '/work/moss-and-memory/'), JSON.stringify({ before, after }));
+    await t.ctx.close();
+  }
+
+  { // WCAG 1.4.13: a header sub-menu opened by keyboard focus can be dismissed with Escape, without leaving a focus ring on a hidden control.
+    const t = await open('about/');
+    const menuWidth = (sel) => t.page.evaluate((sel) => document.querySelector(sel).getBoundingClientRect().width, sel);
+    await t.page.focus('.site-nav__item:first-child .site-nav__sub a');          // Services has no link of its own
+    const open1 = await menuWidth('.site-nav__item:first-child .site-nav__sub');
+    await t.page.keyboard.press('Escape');
+    const closed1 = await menuWidth('.site-nav__item:first-child .site-nav__sub');
+    const focus1 = await t.page.evaluate(() => document.activeElement.tagName);
+    await t.page.focus('.site-nav__item:nth-child(2) .site-nav__sub a');         // Work has its own link: focus returns to it
+    const open2 = await menuWidth('.site-nav__item:nth-child(2) .site-nav__sub');
+    await t.page.keyboard.press('Escape');
+    const closed2 = await menuWidth('.site-nav__item:nth-child(2) .site-nav__sub');
+    const focus2 = await t.page.evaluate(() => document.activeElement.getAttribute('href'));
+    await t.page.evaluate(() => document.activeElement.blur());                   // focus leaves the item entirely, which re-arms its menu
+    await t.page.focus('.site-nav__item:nth-child(2) .site-nav__sub a');
+    const reopened = await menuWidth('.site-nav__item:nth-child(2) .site-nav__sub');
+    await report('Header sub-menus: Escape dismisses an open menu, focus never rests on a hidden link, and the menu opens again later', t,
+      open1 > 50 && closed1 <= 2 && focus1 === 'BODY' && open2 > 50 && closed2 <= 2 && focus2 === '/work/' && reopened > 50, JSON.stringify({ open1, closed1, focus1, open2, closed2, focus2, reopened }));
+    await t.ctx.close();
+  }
+
+  // WCAG 2.2.2: a recording that starts by itself can be paused, and a pause sticks.
+  const videoState = (page, sel) => page.evaluate((sel) => { const v = document.querySelector(sel + ' video'); const b = document.querySelector(sel + ' .work-card__play'); return { paused: v.paused, flagged: v.hasAttribute('data-user-paused'), label: b.textContent, name: b.getAttribute('aria-label') }; }, sel);
+  { // List layout (in-view playback)
+    const t = await open('work/moss-and-memory/');
+    await t.page.waitForTimeout(600);
+    await t.page.evaluate(() => document.querySelector('.case-visual').scrollIntoView({ block: 'center' }));
+    await t.page.waitForTimeout(1500);
+    const playing = await videoState(t.page, '.case-visual');
+    await t.page.click('.case-visual .work-card__play');
+    await t.page.waitForTimeout(500);
+    const paused = await videoState(t.page, '.case-visual');
+    await t.page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight)); await t.page.waitForTimeout(1200);
+    await t.page.evaluate(() => document.querySelector('.case-visual').scrollIntoView({ block: 'center' })); await t.page.waitForTimeout(1800);
+    const stillPaused = await videoState(t.page, '.case-visual');
+    await t.page.click('.case-visual .work-card__play'); await t.page.waitForTimeout(1200);
+    const resumed = await videoState(t.page, '.case-visual');
+    await report('Recordings (list): a Play/Pause button says what it will do, pausing sticks when scrolling away and back, and Play resumes', t,
+      !playing.paused && playing.label === 'Pause' && /^Pause the Moss & Memory recording/.test(playing.name) && paused.paused && paused.label === 'Play' && paused.flagged && stillPaused.paused && !resumed.paused && !resumed.flagged && resumed.label === 'Pause',
+      JSON.stringify({ playing, paused, stillPaused, resumed }));
+    await t.ctx.close();
+  }
+  { // 3D gallery
+    const t = await open('?tier=mid');
+    await started(t.page);
+    await toGallery(t.page, 1);
+    const sel = '.work-card[data-project="moss-and-memory"]';
+    const before = await videoState(t.page, sel);
+    await t.page.click(`${sel} .work-card__play`);
+    await t.page.waitForTimeout(2200); // long enough for the gallery's own play/pause management to run several times
+    const paused = await videoState(t.page, sel);
+    await t.page.click(`${sel} .work-card__play`); await t.page.waitForTimeout(1500);
+    const resumed = await videoState(t.page, sel);
+    await report('Recordings (3D gallery): the same button pauses the recording in its frame, the gallery does not restart it, and Play resumes', t,
+      !before.paused && paused.paused && paused.flagged && paused.label === 'Play' && !resumed.paused && !resumed.flagged, JSON.stringify({ before, paused, resumed }));
     await t.ctx.close();
   }
 
@@ -647,5 +730,13 @@ for (const f of walk(join(dist, 'assets', 'vendor')).filter((x) => /three-r186.*
 
 await browser.close();
 server.close();
+// SEO: builds the site both ways (pre-launch and launch mode) and checks robots, sitemap, canonical and Open Graph.
+{
+  const { spawnSync } = await import('node:child_process');
+  const r = spawnSync('node', [join(here, 'seo.mjs')], { encoding: 'utf8' });
+  process.stdout.write(r.stdout);
+  if (r.status !== 0) fail('SEO check failed (see above)');
+}
+
 if (failures.length) { console.log(`\nSMOKE FAILED: ${failures.length} problem(s)`); process.exit(1); }
 console.log('\nSMOKE PASSED');

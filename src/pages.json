@@ -1,7 +1,9 @@
 {
   "site": {
     "name": "34 Automation",
-    "url": "https://www.34automation.com"
+    "url": "https://www.34automation.com",
+    "indexable": false,
+    "ogImage": "/assets/img/og/og-1200x630.jpg"
   },
   "pages": [
     { "route": "/", "source": "pages/home.html", "title": "34 Automation", "description": "[PLACEHOLDER: home meta description — final copy pending humanize pass]", "nav": "home", "scene": "home", "graph": true },

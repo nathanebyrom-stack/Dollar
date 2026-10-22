@@ -61,10 +61,14 @@ body[data-scene] main, body[data-scene] .site-footer { position: relative; z-ind
 .scene-on .scene-hero--home { min-height: 120svh; }
 .scene-on .scene-services { min-height: 100svh; display: grid; align-content: center; }
 .scene-on .service-panels { gap: 0; }
-.scene-on .service-panel { grid-area: 1 / 1; visibility: hidden; opacity: 0; }
+/* Inactive panels are invisible but NOT visibility:hidden or display:none: that would remove their links from the keyboard
+   and from screen readers, leaving two of the three services unreachable. They stay in the page, in order, and focusing one
+   moves the scroll to the step that shows it (timeline-home.js, stills.js). pointer-events stops an invisible panel
+   catching clicks meant for the visible one stacked in the same cell. */
+.scene-on .service-panel { grid-area: 1 / 1; opacity: 0; pointer-events: none; }
 /* On the Low path the panel for the current face is shown by class and crossfades (the live page animates them with GSAP). */
-html[data-tier="low"] .service-panel { transition: opacity var(--dur-slow) var(--ease-out), visibility 0s linear var(--dur-slow); }
-html[data-tier="low"] .service-panel.is-active { visibility: visible; opacity: 1; transition: opacity var(--dur-slow) var(--ease-out), visibility 0s; }
+html[data-tier="low"] .service-panel { transition: opacity var(--dur-slow) var(--ease-out); }
+html[data-tier="low"] .service-panel.is-active { opacity: 1; pointer-events: auto; }
 @media (max-width: 899px) { .scene-on .scene-services { align-content: end; padding-bottom: var(--space-8); } }
 
 /* Scene 3: the Work gallery. Desktop only, and only once the 3D frames are ready (stage.js sets html.gallery-3d, and

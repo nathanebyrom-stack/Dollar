@@ -2,9 +2,12 @@
    Videos are always muted, looping, inline and decorative, and preload="none": nothing downloads until it is needed.
 
    Mode (on <html> as data-videos):
-     tap     Low tier or reduced motion: nothing starts by itself; a Play button on the card starts that one video.
+     tap     Low tier or reduced motion: nothing starts by itself; the button on the card starts that one video.
      view    otherwise, in the list layout: a card's video plays while it is mostly on screen (never more than two at once).
      (none)  html.gallery-3d is set: the 3D gallery (scene/frames.js) owns playback, so this script stands down.
+   In every mode the button is a Play / Pause toggle (WCAG 2.2.2: moving content that starts by itself must be pausable).
+   A pause is the person's choice and sticks: it is recorded on the video (data-user-paused), which frames.js honours too,
+   so scrolling away and back never restarts it.
    The mode is recomputed when the tier or the gallery class changes, so a fall back from 3D to the stills just works. */
 (function () {
   'use strict';
@@ -14,7 +17,7 @@
   var cards = [].slice.call(document.querySelectorAll('.work-card, [data-media-card]'));
   // A card can hold two recordings (desktop and phone); they start, stop and release together.
   var items = cards.map(function (card) {
-    return { card: card, medias: [].slice.call(card.querySelectorAll('.work-card__media')), videos: [].slice.call(card.querySelectorAll('.work-card__video')), play: card.querySelector('.work-card__play') };
+    return { card: card, medias: [].slice.call(card.querySelectorAll('.work-card__media')), videos: [].slice.call(card.querySelectorAll('.work-card__video')), play: card.querySelector('.work-card__play'), userPaused: false };
   }).filter(function (i) { return i.videos.length; });
   if (!items.length) return;
 
@@ -56,7 +59,28 @@
   function rebalance() {
     visible.sort(function (a, b) { return distance(a) - distance(b); });
     items.forEach(function (i) { if (visible.indexOf(i) === -1) stop(i); });
-    visible.forEach(function (i, n) { if (n < MAX_PLAYING) start(i); else stop(i); });
+    visible.forEach(function (i, n) { if (n < MAX_PLAYING && !i.userPaused) start(i); else stop(i); });
+  }
+
+  // The button says what pressing it will do, and its accessible name says it too.
+  function sync(item) {
+    if (!item.play) return;
+    var playing = item.videos.some(function (v) { return !v.paused && v.getAttribute('src'); });
+    var count = item.play.getAttribute('data-count') === '2' ? 'recordings' : 'recording';
+    item.play.textContent = playing ? 'Pause' : 'Play';
+    item.play.setAttribute('aria-label', (playing ? 'Pause' : 'Play') + ' the ' + item.play.getAttribute('data-name') + ' ' + count);
+  }
+
+  function userPause(item) {
+    item.userPaused = true;
+    item.videos.forEach(function (v) { v.setAttribute('data-user-paused', ''); v.pause(); });
+    item.medias.forEach(function (m) { m.classList.remove('is-playing'); });
+  }
+
+  function userPlay(item) {
+    item.userPaused = false;
+    item.videos.forEach(function (v) { v.removeAttribute('data-user-paused'); });
+    start(item);
   }
 
   function watch() {
@@ -77,8 +101,10 @@
   function onPlay(e) {
     var item = items.filter(function (i) { return i.play === e.currentTarget; })[0];
     if (!item) return;
-    items.forEach(function (i) { if (i !== item) stop(i); }); // one at a time in tap mode
-    start(item);
+    var playing = item.videos.some(function (v) { return !v.paused && v.getAttribute('src'); });
+    if (playing) { userPause(item); return; }
+    if (mode === 'tap') items.forEach(function (i) { if (i !== item) stop(i); }); // one at a time in tap mode
+    userPlay(item);
   }
 
   function weakDevice() {
@@ -110,7 +136,11 @@
     }
   }
 
-  items.forEach(function (i) { if (i.play) i.play.addEventListener('click', onPlay); });
+  items.forEach(function (i) {
+    if (i.play) i.play.addEventListener('click', onPlay);
+    i.videos.forEach(function (v) { ['playing', 'pause', 'emptied'].forEach(function (name) { v.addEventListener(name, function () { sync(i); }); }); });
+    sync(i);
+  });
   document.addEventListener('visibilitychange', function () { if (document.hidden) items.forEach(stop); else if (mode === 'view') rebalance(); });
   new MutationObserver(setMode).observe(root, { attributes: true, attributeFilter: ['data-tier', 'class'] });
   if (window.Motion && window.Motion.onChange) window.Motion.onChange(setMode);

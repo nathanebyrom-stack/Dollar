@@ -16,7 +16,7 @@
    Video: at most two videos play at once (the frames nearest the middle of the screen); the rest pause and show their
    poster. A video far from the screen has its source released, to free decoder and GPU memory on phones. Every
    <video> is muted, looping, inline and preload="none". */
-import * as THREE from '../../vendor/three-r186/three.module.min.js';
+import * as THREE from '../../vendor/three-r186/three.min.js';
 import { RoundedBoxGeometry } from '../../vendor/three-r186/addons/geometries/RoundedBoxGeometry.js';
 
 const CAMERA_DISTANCE = 12;
@@ -125,6 +125,7 @@ export function createGallery({ environment, tier, anisotropy, container, cards 
   }
   function play(frame) {
     const v = frame.video;
+    if (v.hasAttribute('data-user-paused')) return; // the person paused it (work-cards.js): leave it paused
     if (!v.getAttribute('src')) { v.src = source(v); v.load(); }
     const p = v.play();
     if (p && p.catch) p.catch(() => { /* refused: the poster stays */ });

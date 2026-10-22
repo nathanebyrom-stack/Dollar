@@ -1,12 +1,12 @@
 // Assembles src/pages + shared partials into dist/ (no dependencies).
 // Each route becomes a folder with index.html so URLs are clean (/about/ not /about.html).
 import { readFileSync, writeFileSync, mkdirSync, rmSync, cpSync, existsSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const src = join(root, 'src');
-const dist = join(root, 'dist');
+const dist = process.env.OUT_DIR ? resolve(process.env.OUT_DIR) : join(root, 'dist'); // OUT_DIR: build somewhere else (tools/check/seo.mjs)
 
 const read = (p) => readFileSync(join(src, p), 'utf8');
 const escapeAttr = (s) => s.replace(/&(?!amp;|lt;|gt;|quot;)/g, '&amp;').replace(/"/g, '&quot;');
@@ -17,6 +17,11 @@ const head = read('partials/head.html');
 const header = read('partials/header.html');
 const footer = read('partials/footer.html');
 const year = String(new Date().getFullYear());
+
+// Search engines. Until launch the site is not indexable: it is a public preview full of placeholders, so every page says
+// noindex and robots.txt disallows everything. Launch is one line: "indexable": true in pages.json (or SITE_INDEXABLE=1 to
+// try the launch build). Noindex pages (404, thanks, symbols review) stay out of the sitemap and keep their own noindex.
+const indexable = site.indexable === true || process.env.SITE_INDEXABLE === '1';
 
 // The automation graph (decision D4: SVG + GSAP, not WebGL) is generated here from assets/graph.json, in a wide and a tall
 // layout, as real HTML. It reads fully lit with no JavaScript and under reduced motion; graph.js dims it and lights it
@@ -60,7 +65,10 @@ ${g.nodes.map(node).join('\n')}
 const work = JSON.parse(read('assets/work/projects.json'));
 const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 // One <video> per recording. Videos are muted, looping, inline and decorative; nothing downloads until it is needed.
-const videoTag = (m) => `<video class="work-card__video" muted loop playsinline preload="none" poster="${m.dir}${m.poster}" width="${m.width}" height="${m.height}" data-webm="${m.dir}${m.webm}" data-mp4="${m.dir}${m.mp4}" aria-hidden="true" tabindex="-1"></video>`;
+// The poster loads as soon as the page does (preload="none" only holds back the video), so use its AVIF when one exists:
+// a quarter of the JPG's weight, and every browser that can play the recordings can show it. The JPG stays as the source file.
+const posterFile = (m) => { const avif = m.poster.replace(/\.jpg$/, '.avif'); return existsSync(join(src, m.dir, avif)) ? avif : m.poster; };
+const videoTag = (m) => `<video class="work-card__video" muted loop playsinline preload="none" poster="${m.dir}${posterFile(m)}" width="${m.width}" height="${m.height}" data-webm="${m.dir}${m.webm}" data-mp4="${m.dir}${m.mp4}" aria-hidden="true" tabindex="-1"></video>`;
 
 // The visual for a project: its desktop recording (and phone recording, in front of it), or a visible placeholder if it has
 // none yet. Shared by the Work cards and the case-study pages, so the videos behave the same everywhere (work-cards.js).
@@ -78,7 +86,7 @@ function projectVisual(p, wrapper, attrs = '') {
   return `<div class="${wrapper}${phone ? ` ${wrapper}--phone` : ''}"${attrs}>
         <div class="work-card__media" data-kind="desktop">
           ${videoTag(desktop)}
-          <button type="button" class="work-card__play" aria-label="Play the ${esc(p.name)} recording${phone ? 's' : ''}">Play</button>
+          <button type="button" class="work-card__play" data-name="${esc(p.name)}" data-count="${phone ? 2 : 1}" aria-label="Play the ${esc(p.name)} recording${phone ? 's' : ''}">Play</button>
         </div>${phone ? `
         <div class="work-card__media work-card__media--phone" data-kind="phone">
           ${videoTag(phone)}
@@ -102,13 +110,13 @@ const caseVisual = (p) => `<section class="section case-section" aria-label="${e
     ${projectVisual(p, 'case-visual', ' data-media-card')}
   </section>`;
 
-function workCards() {
+function workCards(level = 3) {
   const items = work.projects.map((p) => {
     return `    <li class="work-card" data-project="${p.id}" data-status="${p.status}">
       ${projectVisual(p, 'work-card__visual')}
       <div class="work-card__body">
         <p class="work-card__status">${statusBadge(p)}</p>
-        <h3 class="work-card__title"><a href="${p.page}">${esc(p.name)}</a></h3>
+        <h${level} class="work-card__title"><a href="${p.page}">${esc(p.name)}</a></h${level}>
         <p class="placeholder">${esc(p.summary)}</p>${p.status === 'live' && p.visit ? `\n        ${visitLink(p, 'work-card__visit')}` : ''}
       </div>
     </li>`;
@@ -133,8 +141,9 @@ for (const page of pages) {
   const rawBody = read(page.source);
   const project = page.project ? work.projects.find((x) => x.id === page.project) : null;
   if (page.project && !project) throw new Error(`${page.route}: unknown project "${page.project}" (see assets/work/projects.json)`);
-  const body = fill(rawBody, {
-    work_cards: /\{\{work_cards\}\}/.test(rawBody) ? workCards() : '',
+  const withCards = rawBody.replace(/\{\{work_cards(?::([2-6]))?\}\}/g, (m, level) => workCards(level ? Number(level) : 3)); // {{work_cards:2}} sets the heading level
+  const body = fill(withCards, {
+    work_cards: '',
     automation_graph: /\{\{automation_graph\}\}/.test(rawBody) ? automationGraph() : '',
     case_header: project ? caseHeader(project) : '',
     case_visual: project ? caseVisual(project) : '',
@@ -153,7 +162,8 @@ ${fill(head, {
   title: escapeAttr(page.title),
   description: escapeAttr(page.description),
   canonical: site.url + (page.route === '/404.html' ? '/' : page.route),
-  robots: page.noindex ? '<meta name="robots" content="noindex">\n' : '',
+  robots: !indexable ? '<meta name="robots" content="noindex, nofollow">\n' : page.noindex ? '<meta name="robots" content="noindex">\n' : '',
+  ogImage: site.url + site.ogImage,
   scenes: page.scene ? '<link rel="stylesheet" href="/assets/css/scenes.css">\n' : '',
 })}</head>
 <body data-page="${page.nav || 'none'}"${page.scene ? ` data-scene="${page.scene}"` : ''}>
@@ -165,7 +175,7 @@ ${fill(footer, { year })}<script src="/assets/vendor/gsap-3.13.0.min.js" defer><
 <script src="/assets/vendor/lenis-1.3.27.min.js" defer></script>
 <script src="/assets/js/motion.js" defer></script>
 <script src="/assets/js/smooth.js" defer></script>
-${page.graph ? '<script src="/assets/js/graph.js" defer></script>\n' : ''}${/\{\{(work_cards|case_visual)\}\}/.test(rawBody) ? '<script src="/assets/js/work-cards.js" defer></script>\n' : ''}
+${page.graph ? '<script src="/assets/js/graph.js" defer></script>\n' : ''}${/\{\{(work_cards|case_visual)[:}]/.test(rawBody) ? '<script src="/assets/js/work-cards.js" defer></script>\n' : ''}
 <script src="/assets/js/main.js" defer></script>
 ${page.scene ? '<script type="module" src="/assets/js/scene/boot.js"></script>\n' : ''}
 </body>
@@ -179,3 +189,11 @@ ${page.scene ? '<script type="module" src="/assets/js/scene/boot.js"></script>\n
   writeFileSync(out, html);
   console.log(`built ${page.route}`);
 }
+
+// sitemap.xml and robots.txt, from pages.json: the 404, noindex pages and anything not indexable are left out.
+const urls = pages.filter((p) => !p.noindex && p.route !== '/404.html').map((p) => `  <url><loc>${site.url}${p.route}</loc></url>`);
+writeFileSync(join(dist, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`);
+writeFileSync(join(dist, 'robots.txt'), indexable
+  ? `User-agent: *\nAllow: /\n\nSitemap: ${site.url}/sitemap.xml\n`
+  : `# Not indexable yet: this is a pre-launch preview. See scripts/build.mjs and "indexable" in src/pages.json.\nUser-agent: *\nDisallow: /\n`);
+console.log(`built sitemap.xml (${urls.length} urls) and robots.txt (${indexable ? 'indexable' : 'NOT indexable'})`);

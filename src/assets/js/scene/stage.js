@@ -7,7 +7,7 @@
 
    Failure paths all land on the Low tier (no canvas, the page is just its HTML): a lost WebGL context, a shader
    that fails to compile, or frame times too slow for the tier. The tier only ever falls. */
-import * as THREE from '../../vendor/three-r186/three.module.min.js';
+import * as THREE from '../../vendor/three-r186/three.min.js';
 import { createDie } from './die.js';
 import { createLights } from './lighting.js';
 import { buildEngravings, buildBrushed } from './engravings.js';

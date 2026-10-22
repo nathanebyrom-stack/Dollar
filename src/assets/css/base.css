@@ -63,6 +63,9 @@ html.lenis, html.lenis body { height: auto; }
   border: 1px solid var(--color-text); padding: 0.4rem 0.9rem; border-radius: var(--radius-pill); text-decoration: none;
 }
 
+/* Escape has dismissed this menu (main.js): hide it again until the pointer or focus leaves the item. */
+.site-nav__item[data-dismissed] .site-nav__sub { display: block; position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; padding: 0; border: 0; min-width: 0; }
+
 /* Small screens: show sub-links inline so every page is reachable without JS. */
 @media (max-width: 47.99rem) {
   .site-nav__list { flex-direction: column; align-items: flex-start; }

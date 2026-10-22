@@ -1,6 +1,6 @@
 /* Lighting (HERO.md "Look"): one cool key, one silver rim, a soft environment for reflections.
    Lights are fixed in world space, so when the camera orbits the die the light appears to slide across the metal. */
-import * as THREE from '../../vendor/three-r186/three.module.min.js';
+import * as THREE from '../../vendor/three-r186/three.min.js';
 import { RoomEnvironment } from '../../vendor/three-r186/addons/environments/RoomEnvironment.js';
 
 const RIM_RADIUS = 4.2;
