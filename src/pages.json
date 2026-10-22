@@ -7,6 +7,7 @@
     { "route": "/", "source": "pages/home.html", "title": "34 Automation", "description": "[PLACEHOLDER: home meta description — final copy pending humanize pass]", "nav": "home", "scene": "home", "graph": true },
     { "route": "/about/", "source": "pages/about.html", "title": "About | 34 Automation", "description": "[PLACEHOLDER: about meta description]", "nav": "about" },
     { "route": "/contact/", "source": "pages/contact.html", "title": "Contact | 34 Automation", "description": "[PLACEHOLDER: contact meta description]", "nav": "contact" },
+    { "route": "/contact/thanks/", "source": "pages/contact-thanks.html", "title": "Thank you | 34 Automation", "description": "Thank you for getting in touch.", "nav": "", "noindex": true },
     { "route": "/services/web-design/", "source": "pages/services/web-design.html", "title": "Web design | 34 Automation", "description": "[PLACEHOLDER: web design meta description]", "nav": "services", "scene": "service:web" },
     { "route": "/services/marketing/", "source": "pages/services/marketing.html", "title": "Marketing | 34 Automation", "description": "[PLACEHOLDER: marketing meta description]", "nav": "services", "scene": "service:marketing" },
     { "route": "/services/workflow-automation/", "source": "pages/services/workflow-automation.html", "title": "Workflow automation | 34 Automation", "description": "[PLACEHOLDER: workflow automation meta description]", "nav": "services", "scene": "service:automation", "graph": true },

@@ -88,6 +88,8 @@ async function checkPage(route, viewport, label, extra = {}) {
   page.on('console', (m) => { if (m.type() === 'error') problems.push(`console error: ${m.text()}`); });
   page.on('pageerror', (e) => problems.push(`page error: ${e.message}`));
   page.on('requestfailed', (r) => problems.push(`request failed: ${r.url()} ${r.failure()?.errorText}`));
+  // The privacy policy's drafting notes say the site loads nothing third-party and sets no cookies or storage; keep that true.
+  page.on('request', (r) => { if (!r.url().startsWith(base) && !r.url().startsWith('data:') && !r.url().startsWith('blob:')) problems.push(`third-party request: ${r.url()}`); });
   page.on('response', (r) => { if (r.status() >= 400 && !r.url().endsWith('/favicon.ico')) problems.push(`HTTP ${r.status()}: ${r.url()}`); });
 
   const res = await page.goto(base + route, { waitUntil: 'networkidle' });
@@ -133,6 +135,9 @@ async function checkPage(route, viewport, label, extra = {}) {
   if (info.scrollWidth > info.innerWidth) problems.push(`horizontal overflow: scrollWidth ${info.scrollWidth} > ${info.innerWidth}`);
   for (const v of info.csp) problems.push(`CSP violation: ${v}`);
   for (const h of info.hrefs) if (!links.has(h)) links.set(h, route);
+  const stored = await page.evaluate(() => ({ cookies: document.cookie, local: localStorage.length, session: sessionStorage.length }));
+  const cookies = await ctx.cookies();
+  if (cookies.length || stored.cookies || stored.local || stored.session) problems.push(`the site stored something: ${JSON.stringify({ cookies: cookies.map((c) => c.name), ...stored })}`);
   if (extra.after) await extra.after(page, problems);
   await ctx.close();
   if (problems.length) { fail(`${route} @ ${label}`); problems.forEach((p) => console.log(`       ${p}`)); }
@@ -388,6 +393,78 @@ async function sceneChecks() {
       await graphAt(t.page, 1); await t.page.waitForTimeout(900); const end = await graphState(t.page);
       await report(`${label}: on a phone the tall layout is shown, animates, and does not overflow`, t, start.kind === 'tall' && start.visible === 1 && start.lit === '00000' && end.lit === '11111' && !end.overflow && start.inView && end.inView, JSON.stringify({ start, end }));
       await t.ctx.close(); }
+  }
+
+  // ---- Contact, About, Privacy (Phase 6) ----
+  { // The contact form: structure Netlify Forms needs, accessible labels, a honeypot nobody can reach, and the whole round trip.
+    const t = await open('contact/');
+    const r = await t.page.evaluate(() => {
+      const f = document.querySelector('form[name="contact"]');
+      const fields = [...f.querySelectorAll('input:not([type="hidden"]):not([name="bot-field"]), textarea')];
+      const bot = f.querySelector('[name="bot-field"]');
+      return {
+        method: f.method, action: f.getAttribute('action'), netlify: f.hasAttribute('data-netlify'), honeypot: f.getAttribute('netlify-honeypot'),
+        formName: f.querySelector('input[name="form-name"]')?.value,
+        fields: fields.map((e) => ({ name: e.name, type: e.type || e.tagName.toLowerCase(), required: e.required, label: !!document.querySelector(`label[for="${e.id}"]`), autocomplete: e.autocomplete })),
+        botHidden: !!bot.closest('[hidden]') && bot.getAttribute('tabindex') === '-1', botDisplayed: bot.getBoundingClientRect().width > 0,
+        submit: !!f.querySelector('button[type="submit"]'), scripts: [...document.scripts].filter((x) => x.src && !x.src.startsWith(location.origin)).length,
+        iframes: document.querySelectorAll('iframe').length, privacyLink: !!f.querySelector('a[href="/privacy/"]'),
+      };
+    });
+    const names = r.fields.map((x) => x.name).join();
+    await report('Contact form: Netlify Forms attributes, a labelled and required field each, a hidden honeypot, no third-party scripts or frames', t,
+      r.method === 'post' && r.action === '/contact/thanks/' && r.netlify && r.honeypot === 'bot-field' && r.formName === 'contact' && names === 'name,email,message'
+      && r.fields.every((x) => x.required && x.label) && r.fields[1].type === 'email' && r.fields[0].autocomplete === 'name' && r.fields[1].autocomplete === 'email'
+      && r.botHidden && !r.botDisplayed && r.submit && r.scripts === 0 && r.iframes === 0 && r.privacyLink, JSON.stringify(r));
+
+    // Keyboard: Tab order is name, email, message, Send, Privacy policy, and never the honeypot.
+    await t.page.evaluate(() => document.getElementById('contact-name').focus());
+    const order = [await t.page.evaluate(() => document.activeElement.name || document.activeElement.id)];
+    for (let i = 0; i < 4; i++) { await t.page.keyboard.press('Tab'); order.push(await t.page.evaluate(() => document.activeElement.name || document.activeElement.textContent.trim() || document.activeElement.id)); }
+    await report('Contact form: keyboard order is name, email, message, Send, Privacy policy (never the honeypot)', t, order.join() === 'name,email,message,Send,Privacy policy', order.join());
+
+    // An empty submission is stopped by the browser and stays on the page.
+    await t.page.click('button[type="submit"]');
+    await t.page.waitForTimeout(500);
+    const stay = await t.page.evaluate(() => ({ url: location.pathname, invalid: document.querySelector('#contact-name').matches(':invalid') }));
+    await report('Contact form: an empty submission is blocked and stays on the page', t, stay.url === '/contact/' && stay.invalid, JSON.stringify(stay));
+
+    // A filled one posts the right fields to our own thanks page. (Netlify itself processes it only once deployed.)
+    let posted = null;
+    t.page.on('request', (rq) => { if (rq.method() === 'POST') posted = { url: rq.url().replace(base, ''), body: rq.postData() }; });
+    await t.page.fill('#contact-name', 'Test Person');
+    await t.page.fill('#contact-email', 'test@example.com');
+    await t.page.fill('#contact-message', 'A test message');
+    await Promise.all([t.page.waitForURL('**/contact/thanks/'), t.page.click('button[type="submit"]')]);
+    const params = new URLSearchParams(posted?.body || '');
+    await report('Contact form: a filled form posts name, email and message with form-name and an empty honeypot to /contact/thanks/', t,
+      posted && posted.url === '/contact/thanks/' && params.get('form-name') === 'contact' && params.get('name') === 'Test Person' && params.get('email') === 'test@example.com' && params.get('message') === 'A test message' && (params.get('bot-field') || '') === '', JSON.stringify(posted));
+    await t.ctx.close();
+  }
+
+  { // The thanks page: not for search engines, not linked from anywhere, one h1.
+    const t = await open('contact/thanks/');
+    const r = await t.page.evaluate(() => ({ robots: document.querySelector('meta[name="robots"]')?.content, h1: document.querySelectorAll('h1').length, nav: document.querySelectorAll('[data-active], [aria-current="page"]').length }));
+    const linked = [];
+    for (const route of ['', 'contact/', 'about/', 'privacy/', 'work/']) { const html = await (await fetch(`${base}/${route}`)).text(); if (html.includes('href="/contact/thanks/')) linked.push(route || '/'); }
+    await report('Thanks page: noindex, one h1, and not linked from any page', t, r.robots === 'noindex' && r.h1 === 1 && linked.length === 0, JSON.stringify({ ...r, linked }));
+    await t.ctx.close();
+  }
+
+  { // Privacy: the structure for the full UK GDPR text, each part a visible placeholder.
+    const t = await open('privacy/');
+    const r = await t.page.evaluate(() => { const h2 = [...document.querySelectorAll('main h2')]; return { headings: h2.map((h) => h.textContent), placeholders: h2.filter((h) => h.nextElementSibling && h.nextElementSibling.classList.contains('placeholder')).length, external: [...document.querySelectorAll('main a[href^="http"]')].length, h1: document.querySelectorAll('h1').length }; });
+    await report('Privacy: nine structured sections, each with a visible placeholder, no external links', t, r.headings.length === 9 && r.placeholders === 9 && r.external === 0 && r.h1 === 1 && r.headings.includes('Cookies') && r.headings.includes('Your rights'), JSON.stringify(r));
+    await t.ctx.close();
+  }
+
+  { // About: the photo slot is 4:5, beside the text on desktop and above it on a phone.
+    for (const [label, viewport, side] of [['desktop', { width: 1440, height: 900 }, true], ['phone', { width: 375, height: 800 }, false]]) {
+      const t = await open('about/', { viewport });
+      const r = await t.page.evaluate(() => { const f = document.querySelector('.photo-slot__frame').getBoundingClientRect(); const x = document.querySelector('.about-grid__text').getBoundingClientRect(); return { ratio: +(f.width / f.height).toFixed(2), besideText: x.left >= f.right - 1 && Math.abs(x.top - f.top) < 40, overflow: document.documentElement.scrollWidth > innerWidth }; });
+      await report(`About (${label}): a 4:5 photo slot ${side ? 'beside' : 'above'} the text`, t, Math.abs(r.ratio - 0.8) < 0.02 && r.besideText === side && !r.overflow, JSON.stringify(r));
+      await t.ctx.close();
+    }
   }
 
   // ---- Case studies (Phase 5): honest status, the rules about what may be shown, and the videos ----
