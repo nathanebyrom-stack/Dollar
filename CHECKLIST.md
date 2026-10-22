@@ -44,10 +44,10 @@ Steps 3 onwards replaced by Jenny, 18 Oct 2026, to follow DOLLAR-SHOWCASE-PLAN.m
 - [x] Animated workflow graph (Home scene 4)
 
 ## 8. Phase 5: Case studies
-- [ ] Case-study template
-- [ ] Fluid Process UK (Live)
-- [ ] AOE Engineering (In build, placeholder)
-- [ ] Moss & Memory (Concept, high-res photoreal section only)
+- [x] Case-study template
+- [x] Fluid Process UK (Live)
+- [x] AOE Engineering (In build, placeholder)
+- [x] Moss & Memory (Concept, high-res photoreal section only)
 
 ## 9. Phase 6: About, Contact, Privacy
 - [ ] About structure with photo slot

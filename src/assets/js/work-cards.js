@@ -10,7 +10,8 @@
   'use strict';
 
   var root = document.documentElement;
-  var cards = [].slice.call(document.querySelectorAll('.work-card'));
+  // Work cards, and the visual on a case-study page (marked data-media-card).
+  var cards = [].slice.call(document.querySelectorAll('.work-card, [data-media-card]'));
   // A card can hold two recordings (desktop and phone); they start, stop and release together.
   var items = cards.map(function (card) {
     return { card: card, medias: [].slice.call(card.querySelectorAll('.work-card__media')), videos: [].slice.call(card.querySelectorAll('.work-card__video')), play: card.querySelector('.work-card__play') };

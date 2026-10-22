@@ -68,3 +68,26 @@ html[data-videos="tap"] .work-card__media.is-playing .work-card__play { display:
 /* While it animates, the section is taller than the screen and the graph stays in view as you scroll through it. */
 html.graph-on .scene-graph { min-height: 150svh; }
 html.graph-on .scene-graph__sticky { position: sticky; top: 12svh; }
+
+/* ---- Case studies (one template: header and visual come from assets/work/projects.json; see scripts/build.mjs) ---- */
+.case-hero { border-bottom: 0; padding-bottom: var(--space-5); }
+.case-hero__back { margin: 0 0 var(--space-4); font: var(--weight-regular) var(--text-sm)/1.4 var(--font-mono); }
+.case-hero__back a { color: var(--color-text-muted); }
+.case-hero .work-card__status { margin: 0 0 var(--space-4); }
+.case-hero p { max-width: var(--max-width-prose); }
+.case-section { border-bottom: 0; padding-top: var(--space-5); }
+.case-section h2 { margin-top: 0; }
+
+/* The visual: the project's recording in a framed screen, with the phone recording (if any) overlapping its corner. */
+.case-visual { position: relative; max-width: 64rem; }
+.case-visual--phone { margin-bottom: var(--space-7); }
+.case-visual .work-card__media, .case-placeholder, .case-frame { border: 1px solid var(--color-border); border-radius: var(--radius-md); box-shadow: var(--edge-light), var(--shadow-lg); overflow: hidden; background: var(--color-surface); }
+.case-visual .work-card__media--phone { right: 3%; bottom: -10%; width: 20%; }
+.case-visual .work-card__media--placeholder, .case-placeholder { border-style: dashed; border-color: var(--color-text-muted); box-shadow: none; background: var(--color-bg); }
+.case-placeholder { max-width: 64rem; aspect-ratio: 21 / 8; } /* a placeholder needs less room than a recording */
+
+.case-strip { list-style: none; margin: var(--space-5) 0 0; padding: 0; display: grid; gap: var(--space-5); grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); }
+.case-frame { margin: 0; }
+.case-frame img { display: block; width: 100%; height: auto; }
+
+.visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }

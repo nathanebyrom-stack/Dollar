@@ -59,35 +59,57 @@ ${g.nodes.map(node).join('\n')}
 // Statuses are text, not colour alone. Only a Live project gets an outbound link (BRIEF / showcase plan section 4).
 const work = JSON.parse(read('assets/work/projects.json'));
 const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-function workCards() {
-  // One <video> per recording. Videos are muted, looping, inline and decorative; nothing downloads until it is needed.
-  const video = (m, extra = '') => `<video class="work-card__video" muted loop playsinline preload="none" poster="${m.dir}${m.poster}" width="${m.width}" height="${m.height}" data-webm="${m.dir}${m.webm}" data-mp4="${m.dir}${m.mp4}" aria-hidden="true" tabindex="-1"${extra}></video>`;
-  const items = work.projects.map((p) => {
-    const desktop = p.media && p.media.desktop;
-    const phone = p.media && p.media.phone;
-    const media = desktop
-      ? `      <div class="work-card__visual${phone ? ' work-card__visual--phone' : ''}">
-        <div class="work-card__media" data-kind="desktop">
-          ${video(desktop)}
-          <button type="button" class="work-card__play" aria-label="Play the ${esc(p.name)} recording${phone ? 's' : ''}">Play</button>
-        </div>${phone ? `
-        <div class="work-card__media work-card__media--phone" data-kind="phone">
-          ${video(phone)}
-        </div>` : ''}
-      </div>`
-      : `      <div class="work-card__visual">
+// One <video> per recording. Videos are muted, looping, inline and decorative; nothing downloads until it is needed.
+const videoTag = (m) => `<video class="work-card__video" muted loop playsinline preload="none" poster="${m.dir}${m.poster}" width="${m.width}" height="${m.height}" data-webm="${m.dir}${m.webm}" data-mp4="${m.dir}${m.mp4}" aria-hidden="true" tabindex="-1"></video>`;
+
+// The visual for a project: its desktop recording (and phone recording, in front of it), or a visible placeholder if it has
+// none yet. Shared by the Work cards and the case-study pages, so the videos behave the same everywhere (work-cards.js).
+// `wrapper` is the wrapper's class; `attrs` any extra attributes on it.
+function projectVisual(p, wrapper, attrs = '') {
+  const desktop = p.media && p.media.desktop;
+  const phone = p.media && p.media.phone;
+  if (!desktop) {
+    return `<div class="${wrapper}"${attrs}>
         <div class="work-card__media work-card__media--placeholder" data-kind="desktop">
           <p class="placeholder">${esc(p.placeholder)}</p>
         </div>
       </div>`;
-    const visit = p.status === 'live' && p.visit
-      ? `\n        <a class="work-card__visit" href="${esc(p.visit.url)}" rel="noopener noreferrer">${esc(p.visit.label)}</a>` : '';
+  }
+  return `<div class="${wrapper}${phone ? ` ${wrapper}--phone` : ''}"${attrs}>
+        <div class="work-card__media" data-kind="desktop">
+          ${videoTag(desktop)}
+          <button type="button" class="work-card__play" aria-label="Play the ${esc(p.name)} recording${phone ? 's' : ''}">Play</button>
+        </div>${phone ? `
+        <div class="work-card__media work-card__media--phone" data-kind="phone">
+          ${videoTag(phone)}
+        </div>` : ''}
+      </div>`;
+}
+
+const visitLink = (p, cls) => (p.status === 'live' && p.visit ? `<a class="${cls}" href="${esc(p.visit.url)}" rel="noopener noreferrer">${esc(p.visit.label)}</a>` : '');
+const statusBadge = (p) => `<span class="badge badge--${p.status}">${esc(work.statuses[p.status])}</span>`;
+
+// Case-study template: the header and the visual come from the manifest; each page writes its own sections.
+const caseHeader = (p) => `<section class="section case-hero" aria-labelledby="page-title">
+    <p class="case-hero__back"><a href="/work/">All work</a></p>
+    <p class="eyebrow">Case study</p>
+    <h1 id="page-title">${esc(p.name)}</h1>
+    <p class="work-card__status">${statusBadge(p)}</p>
+    <p class="placeholder">${esc(p.summary)}</p>${p.status === 'live' && p.visit ? `\n    <p>${visitLink(p, 'work-card__visit')}</p>` : ''}
+    <p><a class="button" href="/contact/">Start a conversation</a></p>
+  </section>`;
+const caseVisual = (p) => `<section class="section case-section" aria-label="${esc(p.name)} recordings">
+    ${projectVisual(p, 'case-visual', ' data-media-card')}
+  </section>`;
+
+function workCards() {
+  const items = work.projects.map((p) => {
     return `    <li class="work-card" data-project="${p.id}" data-status="${p.status}">
-${media}
+      ${projectVisual(p, 'work-card__visual')}
       <div class="work-card__body">
-        <p class="work-card__status"><span class="badge badge--${p.status}">${esc(work.statuses[p.status])}</span></p>
+        <p class="work-card__status">${statusBadge(p)}</p>
         <h3 class="work-card__title"><a href="${p.page}">${esc(p.name)}</a></h3>
-        <p class="placeholder">${esc(p.summary)}</p>${visit}
+        <p class="placeholder">${esc(p.summary)}</p>${p.status === 'live' && p.visit ? `\n        ${visitLink(p, 'work-card__visit')}` : ''}
       </div>
     </li>`;
   });
@@ -109,7 +131,14 @@ if (existsSync(join(src, 'assets'))) cpSync(join(src, 'assets'), join(dist, 'ass
 
 for (const page of pages) {
   const rawBody = read(page.source);
-  const body = fill(rawBody, { work_cards: /\{\{work_cards\}\}/.test(rawBody) ? workCards() : '', automation_graph: /\{\{automation_graph\}\}/.test(rawBody) ? automationGraph() : '' });
+  const project = page.project ? work.projects.find((x) => x.id === page.project) : null;
+  if (page.project && !project) throw new Error(`${page.route}: unknown project "${page.project}" (see assets/work/projects.json)`);
+  const body = fill(rawBody, {
+    work_cards: /\{\{work_cards\}\}/.test(rawBody) ? workCards() : '',
+    automation_graph: /\{\{automation_graph\}\}/.test(rawBody) ? automationGraph() : '',
+    case_header: project ? caseHeader(project) : '',
+    case_visual: project ? caseVisual(project) : '',
+  });
   // Mark the current section in the nav for screen readers and styling.
   const nav = page.nav
     ? header
@@ -136,7 +165,7 @@ ${fill(footer, { year })}<script src="/assets/vendor/gsap-3.13.0.min.js" defer><
 <script src="/assets/vendor/lenis-1.3.27.min.js" defer></script>
 <script src="/assets/js/motion.js" defer></script>
 <script src="/assets/js/smooth.js" defer></script>
-${page.graph ? '<script src="/assets/js/graph.js" defer></script>\n' : ''}${/\{\{work_cards\}\}/.test(rawBody) ? '<script src="/assets/js/work-cards.js" defer></script>\n' : ''}
+${page.graph ? '<script src="/assets/js/graph.js" defer></script>\n' : ''}${/\{\{(work_cards|case_visual)\}\}/.test(rawBody) ? '<script src="/assets/js/work-cards.js" defer></script>\n' : ''}
 <script src="/assets/js/main.js" defer></script>
 ${page.scene ? '<script type="module" src="/assets/js/scene/boot.js"></script>\n' : ''}
 </body>

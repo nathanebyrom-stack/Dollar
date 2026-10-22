@@ -390,6 +390,51 @@ async function sceneChecks() {
       await t.ctx.close(); }
   }
 
+  // ---- Case studies (Phase 5): honest status, the rules about what may be shown, and the videos ----
+  const CASES = [
+    ['work/fluid-process-uk/', 'Fluid Process UK', 'live', 'Live', 3],
+    ['work/aoe-engineering/', 'AOE Engineering', 'in-build', 'In build', 2],
+    ['work/moss-and-memory/', 'Moss & Memory', 'concept', 'Concept', 1],
+  ];
+  for (const [route, name, status, label, placeholders] of CASES) {
+    const t = await open(route);
+    const r = await t.page.evaluate(() => ({
+      h1: [...document.querySelectorAll('h1')].map((h) => h.textContent), badge: document.querySelector('.case-hero .badge')?.className + '|' + document.querySelector('.case-hero .badge')?.textContent,
+      back: document.querySelector('.case-hero__back a')?.getAttribute('href'), cta: !!document.querySelector('.case-hero a.button[href="/contact/"]'),
+      outbound: [...document.querySelectorAll('article a[href^="http"]')].map((a) => new URL(a.href).hostname),
+      placeholders: document.querySelectorAll('.work-card__media--placeholder').length, eyebrow: document.querySelector('.case-hero .eyebrow')?.textContent,
+    }));
+    const outboundOk = status === 'live' ? r.outbound.join() === 'www.fluidprocess.co.uk' : r.outbound.length === 0;
+    await report(`${route}: one h1, the ${label} badge, a back link, outbound link only if Live, visible placeholders`, t,
+      r.h1.length === 1 && r.h1[0] === name && r.badge === `badge badge--${status}|${label}` && r.back === '/work/' && r.cta && outboundOk && r.placeholders >= placeholders && r.eyebrow === 'Case study', JSON.stringify(r));
+    await t.ctx.close();
+  }
+
+  { // Moss & Memory: only the three permitted parts of the concept site, by Nathan's instruction. Never its Gallery.
+    const t = await open('work/moss-and-memory/');
+    const files = await t.page.evaluate(() => {
+      const urls = new Set();
+      document.querySelectorAll('[src],[srcset],[poster],[data-mp4],[data-webm]').forEach((e) => ['src', 'srcset', 'poster', 'data-mp4', 'data-webm'].forEach((a) => { const v = e.getAttribute(a); if (v) v.split(',').forEach((x) => { const u = x.trim().split(' ')[0]; if (u.includes('/work/')) urls.add(u.split('/').pop()); }); }));
+      return { urls: [...urls].sort(), text: document.querySelector('article').innerText };
+    });
+    const allowed = new Set(['build-sequence.mp4', 'build-sequence.webm', 'poster-hero.jpg', 'poster-hero.avif', 'poster-plants.jpg', 'poster-plants.avif', 'poster-light.jpg', 'poster-light.avif']);
+    const stray = files.urls.filter((u) => !allowed.has(u));
+    await report('Moss & Memory: only the permitted media (hero, build sequence, three posters) and no mention of its Gallery', t, stray.length === 0 && files.urls.length >= 6 && !/gallery|worlds we/i.test(files.text), JSON.stringify({ stray, urls: files.urls }));
+    await t.ctx.close();
+  }
+
+  for (const [name, opts, expect] of [['in-view playback', {}, 'view'], ['reduced motion: play on tap', { reducedMotion: true }, 'tap']]) {
+    const t = await open('work/moss-and-memory/', opts);
+    await t.page.waitForTimeout(800);
+    await t.page.evaluate(() => document.querySelector('.case-visual').scrollIntoView({ block: 'center' }));
+    await t.page.waitForTimeout(1500);
+    const before = await t.page.evaluate(() => ({ mode: document.documentElement.dataset.videos, playing: !document.querySelector('.case-visual video').paused && !!document.querySelector('.case-visual video').getAttribute('src') }));
+    let after = before;
+    if (expect === 'tap') { await t.page.click('.case-visual .work-card__play'); await t.page.waitForTimeout(1500); after = await t.page.evaluate(() => ({ mode: document.documentElement.dataset.videos, playing: !document.querySelector('.case-visual video').paused, url: location.pathname })); }
+    await report(`Moss & Memory: the recording uses ${name}`, t, before.mode === expect && (expect === 'view' ? before.playing : !before.playing && after.playing && after.url === '/work/moss-and-memory/'), JSON.stringify({ before, after }));
+    await t.ctx.close();
+  }
+
   { // ?tier=low forced, and a browser with no WebGL at all: both are the stills path, with no console errors.
     const t = await open('?tier=low');
     await t.page.waitForFunction(() => document.documentElement.classList.contains('scene-still'), null, { timeout: 15000 });
