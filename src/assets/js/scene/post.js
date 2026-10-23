@@ -114,6 +114,7 @@ export function createComposer({ renderer, scene, camera, width, height, pixelRa
   const blurCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
   let glow = null; // { materials: [{ material, colour }], lights } once stage.js hands them over
   let bloom = 0;
+  const BLOOM_GAIN = 0.55; // HERO.md: a lit inlay, not a white print — the halo carries the effect, the core stays metal
 
   function sizeGlow(w, h, pr) {
     const gw = Math.max(2, Math.round(w * pr * GLOW_SCALE));
@@ -206,7 +207,7 @@ export function createComposer({ renderer, scene, camera, width, height, pixelRa
     render() {
       finish.uniforms.uTime.value = Math.random() * 1000; // fresh noise every frame
       const blooming = glow && bloom > 0.004;
-      finish.uniforms.uBloom.value = blooming ? bloom : 0;
+      finish.uniforms.uBloom.value = blooming ? bloom * BLOOM_GAIN : 0;
       if (blooming) finish.uniforms.tBloom.value = renderGlow();
       if (galleryPasses) galleryPasses.bodies.enabled = galleryPasses.screens.enabled = galleryPasses.gallery.active;
       composer.render();
