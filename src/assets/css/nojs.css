@@ -1,0 +1,9 @@
+/* Loaded only when JavaScript is off (a <noscript> link in the head). The Menu button needs JavaScript, so without it the
+   phone navigation is shown in full, sub-links included, as part of the page. */
+@media (max-width: 47.99rem) {
+  .site-nav__toggle { display: none; }
+  .site-header { flex-wrap: wrap; }
+  .site-nav { display: block; position: static; background: none; border: 0; padding: 0; flex-basis: 100%; }
+  /* The die sits below the taller header. */
+  .scene-stage { --die-y: max(46svh, calc(24rem + var(--die) * 0.5 + 1.25rem)); }
+}

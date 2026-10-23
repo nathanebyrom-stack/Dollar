@@ -20,7 +20,7 @@ const year = String(new Date().getFullYear());
 
 // Search engines. Until launch the site is not indexable: it is a public preview full of placeholders, so every page says
 // noindex and robots.txt disallows everything. Launch is one line: "indexable": true in pages.json (or SITE_INDEXABLE=1 to
-// try the launch build). Noindex pages (404, thanks, symbols review) stay out of the sitemap and keep their own noindex.
+// try the launch build). Noindex pages (404, thanks) stay out of the sitemap and keep their own noindex.
 const indexable = site.indexable === true || process.env.SITE_INDEXABLE === '1';
 
 // The automation graph (decision D4: SVG + GSAP, not WebGL) is generated here from assets/graph.json, in a wide and a tall

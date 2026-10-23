@@ -66,13 +66,30 @@ html.lenis, html.lenis body { height: auto; }
 /* Escape has dismissed this menu (main.js): hide it again until the pointer or focus leaves the item. */
 .site-nav__item[data-dismissed] .site-nav__sub { display: block; position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; padding: 0; border: 0; min-width: 0; }
 
-/* Small screens: show sub-links inline so every page is reachable without JS. */
+/* Phones: a Menu button opens the navigation as a panel under the header, with every sub-link visible inside it, so each
+   page is reachable by touch as well as keyboard. The panel is closed by default so the header stays one slim row and
+   there is no layout jump when main.js loads; nojs.css (linked in a <noscript>) shows the whole list inline instead. */
+.site-nav__toggle { display: none; }
 @media (max-width: 47.99rem) {
-  .site-nav__list { flex-direction: column; align-items: flex-start; }
-  .site-nav__sub, .site-nav__item:hover .site-nav__sub, .site-nav__item:focus-within .site-nav__sub {
-    display: block; position: static; background: none; border: 0; padding: 0.25rem 0 0 1rem;
+  .site-header { flex-wrap: nowrap; }
+  .site-nav__toggle {
+    display: inline-flex; align-items: center; min-height: 44px; padding: 0 1.1rem;
+    background: none; color: var(--color-text); font: inherit; cursor: pointer;
+    border: 1px solid var(--color-text-muted); border-radius: var(--radius-pill);
   }
-  .site-nav__sub a { padding: 0.35rem 0; }
+  .site-nav {
+    display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: var(--z-menu);
+    background: var(--color-surface); border-bottom: 1px solid var(--color-border); padding: var(--space-3) var(--gutter) var(--space-5);
+  }
+  .site-header[data-menu-open] .site-nav { display: block; }
+  .site-nav__list { flex-direction: column; align-items: stretch; gap: 0; }
+  .site-nav__group, .site-nav__item > a { display: block; padding: 0.7rem 0; }
+  .site-nav__item > .site-nav__cta { display: inline-block; margin-top: var(--space-3); padding: 0.7rem 1.2rem; }
+  .site-nav__sub, .site-nav__item:hover .site-nav__sub, .site-nav__item:focus-within .site-nav__sub, .site-nav__item[data-dismissed] .site-nav__sub {
+    display: block; position: static; width: auto; height: auto; overflow: visible; clip-path: none; white-space: normal;
+    min-width: 0; background: none; border: 0; padding: 0 0 0.25rem 1rem;
+  }
+  .site-nav__sub a { padding: 0.55rem 0; }
 }
 
 /* Main */
@@ -107,13 +124,6 @@ h2 { font-size: var(--text-2xl); margin-top: var(--space-6); }
   display: grid; place-items: center; aspect-ratio: 4 / 5; max-width: 20rem;
   border: 1px dashed var(--color-text-muted); color: var(--color-placeholder); font: var(--text-sm) var(--font-mono); padding: 1rem; text-align: center;
 }
-
-/* Symbol review page (/symbols/, decision D2): temporary, removed before launch */
-.symbol-grid { list-style: none; margin: var(--space-6) 0 0; padding: 0; display: grid; gap: var(--space-5); grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); }
-.symbol-card { display: grid; gap: var(--space-4); justify-items: start; padding: var(--space-5); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); box-shadow: var(--edge-light); }
-.symbol-card h2 { margin: 0; font-size: var(--text-xl); }
-.symbol-card__row { display: flex; align-items: center; gap: var(--space-5); }
-.symbol-card__lit { filter: drop-shadow(0 0 8px var(--color-glow)) brightness(1.3); }
 
 /* Footer */
 .site-footer { border-top: 1px solid var(--color-border); padding: var(--space-6) var(--gutter); display: grid; gap: var(--space-4); }

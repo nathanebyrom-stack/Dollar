@@ -94,6 +94,8 @@ await run('Services pinned (Low path)', '/', { prepare: async (pg) => {
   await pg.evaluate(() => { const t = ScrollTrigger.getAll().find((s) => s.pin); scrollTo(0, t.start + (t.end - t.start) * 0.5); });
   await pg.waitForTimeout(1200);
 } });
+await run('phone menu open', '/', { viewport: { width: 375, height: 812 }, prepare: async (pg) => { await pg.click('.site-nav__toggle'); } });
+await run('phone menu open on a case study', '/work/fluid-process-uk/', { viewport: { width: 375, height: 812 }, prepare: async (pg) => { await pg.click('.site-nav__toggle'); } });
 await run('graph animating', '/services/workflow-automation/', { prepare: async (pg) => {
   await pg.waitForFunction(() => document.documentElement.classList.contains('graph-on'), null, { timeout: 20000 });
   await pg.evaluate(() => { const x = ScrollTrigger.getAll().find((t) => t.trigger && t.trigger.id === 'scene-graph'); scrollTo(0, x.start + (x.end - x.start) * 0.5); });

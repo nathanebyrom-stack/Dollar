@@ -558,6 +558,39 @@ async function sceneChecks() {
     await t.ctx.close();
   }
 
+  { // Phones: a Menu button opens a panel that shows every page, closes with Escape, and is open in full without JavaScript.
+    const probe = () => ({
+      toggle: (() => { const b = document.querySelector('.site-nav__toggle'); return { shown: getComputedStyle(b).display !== 'none', expanded: b.getAttribute('aria-expanded') }; })(),
+      header: document.querySelector('.site-header').offsetHeight,
+      links: [...document.querySelectorAll('.site-nav a')].map((a) => { const r = a.getBoundingClientRect(); return { w: r.width, h: r.height, right: r.right }; }),
+      overflow: document.documentElement.scrollWidth > innerWidth,
+    });
+    const phone = { width: 375, height: 812 };
+    const t = await open('about/', { viewport: phone });
+    const closed = await t.page.evaluate(probe);
+    await t.page.click('.site-nav__toggle');
+    const opened = await t.page.evaluate(probe);
+    await t.page.focus('.site-nav a[href="/services/marketing/"]');              // focus is inside the panel when Escape is pressed
+    await t.page.keyboard.press('Escape');
+    const after = await t.page.evaluate(() => ({ expanded: document.querySelector('.site-nav__toggle').getAttribute('aria-expanded'), focus: document.activeElement.className }));
+    await t.page.click('.site-nav__toggle');
+    await t.page.setViewportSize({ width: 1000, height: 800 });
+    await t.page.waitForFunction(() => !document.querySelector('.site-header').hasAttribute('data-menu-open'), null, { timeout: 2000 }).catch(() => {}); // the media-query change event is asynchronous
+    const wide = await t.page.evaluate(() => ({ toggle: getComputedStyle(document.querySelector('.site-nav__toggle')).display, open: document.querySelector('.site-header').hasAttribute('data-menu-open') }));
+    await report('Phone menu: closed it is one slim row, open it lists all 9 links at touch size, Escape closes it back to the button, and widening the window resets it', t,
+      closed.toggle.shown && closed.toggle.expanded === 'false' && closed.header < 100 && closed.links.every((l) => l.w === 0) && !closed.overflow
+      && opened.toggle.expanded === 'true' && opened.links.length === 9 && opened.links.every((l) => l.w > 40 && l.h >= 40 && l.right <= phone.width) && !opened.overflow
+      && after.expanded === 'false' && /site-nav__toggle/.test(after.focus) && wide.toggle === 'none' && !wide.open,
+      JSON.stringify({ closed, opened: { ...opened, links: opened.links.length }, after, wide }));
+    await t.ctx.close();
+
+    const n = await open('about/', { viewport: phone, js: false });
+    const plain = await n.page.evaluate(probe);
+    await report('Phone menu without JavaScript: no button, and every link is on the page', n,
+      !plain.toggle.shown && plain.links.length === 9 && plain.links.every((l) => l.w > 40 && l.h >= 24 && l.right <= phone.width) && !plain.overflow, JSON.stringify({ ...plain, links: plain.links.length }));
+    await n.ctx.close();
+  }
+
   // WCAG 2.2.2: a recording that starts by itself can be paused, and a pause sticks.
   const videoState = (page, sel) => page.evaluate((sel) => { const v = document.querySelector(sel + ' video'); const b = document.querySelector(sel + ' .work-card__play'); return { paused: v.paused, flagged: v.hasAttribute('data-user-paused'), label: b.textContent, name: b.getAttribute('aria-label') }; }, sel);
   { // List layout (in-view playback)

@@ -16,8 +16,8 @@
    up exactly. --die is the height of the die's front face; each still shows it at half the image width. */
 .scene-stage { --die: min(38vh, 26vw); --die-x: 64vw; --die-y: 50vh; --die-shift: 10vw; }
 @media (max-width: 899px) {
-  /* Phones: centred, and below the stacked header (13rem) so the menu never covers it. */
-  .scene-stage { --die: min(27vh, 56vw); --die-x: 50vw; --die-y: max(46svh, calc(13rem + var(--die) * 0.5 + 1.25rem)); --die-shift: 0px; }
+  /* Phones: centred, and below the header (one slim row with a Menu button; the open menu is a panel over the page). */
+  .scene-stage { --die: min(27vh, 56vw); --die-x: 50vw; --die-y: max(46svh, calc(5rem + var(--die) * 0.5 + 1.25rem)); --die-shift: 0px; }
 }
 .die-frame {
   position: absolute; left: calc(var(--die-x) - var(--die)); top: calc(var(--die-y) - var(--die));
