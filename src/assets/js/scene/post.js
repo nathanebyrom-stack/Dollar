@@ -102,8 +102,11 @@ export function createComposer({ renderer, scene, camera, width, height, pixelRa
   const glowOptions = { type: THREE.HalfFloatType, depthBuffer: true };
   let glowA = new THREE.WebGLRenderTarget(1, 1, glowOptions);
   let glowB = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, depthBuffer: false });
-  const black = new THREE.DataTexture(new Uint8Array([0, 0, 0, 255]), 1, 1);
-  black.needsUpdate = true;
+  // Cleared once so sampling it before the first glow render reads black (the tree-shaken build has no DataTexture).
+  renderer.setRenderTarget(glowA);
+  renderer.setClearColor(0x000000, 0);
+  renderer.clear();
+  renderer.setRenderTarget(null);
   const blurMaterial = new THREE.ShaderMaterial({ ...BlurShader, uniforms: THREE.UniformsUtils.clone(BlurShader.uniforms) });
   const blurQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), blurMaterial);
   const blurScene = new THREE.Scene();
@@ -165,7 +168,7 @@ export function createComposer({ renderer, scene, camera, width, height, pixelRa
   const output = new OutputPass();
   composer.addPass(output);
   const finish = new ShaderPass(FinishShader);
-  finish.uniforms.tBloom.value = black;
+  finish.uniforms.tBloom.value = glowA.texture;
   finish.uniforms.uInner.value.set(...falloff.inner);
   finish.uniforms.uOuter.value.set(...falloff.outer);
   finish.uniforms.uCentre.value.set(falloff.x, falloff.y);
@@ -204,7 +207,7 @@ export function createComposer({ renderer, scene, camera, width, height, pixelRa
       finish.uniforms.uTime.value = Math.random() * 1000; // fresh noise every frame
       const blooming = glow && bloom > 0.004;
       finish.uniforms.uBloom.value = blooming ? bloom : 0;
-      finish.uniforms.tBloom.value = blooming ? renderGlow() : black;
+      if (blooming) finish.uniforms.tBloom.value = renderGlow();
       if (galleryPasses) galleryPasses.bodies.enabled = galleryPasses.screens.enabled = galleryPasses.gallery.active;
       composer.render();
     },
@@ -218,7 +221,7 @@ export function createComposer({ renderer, scene, camera, width, height, pixelRa
       this.clearGallery();
       composer.dispose();
       target.dispose();
-      glowA.dispose(); glowB.dispose(); black.dispose();
+      glowA.dispose(); glowB.dispose();
       blurMaterial.dispose(); blurQuad.geometry.dispose();
     },
   };
