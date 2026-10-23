@@ -31,11 +31,23 @@
     linear: 'none'
   };
 
+  var pauseListeners = [];
+
   var Motion = {
     reduced: !!(query && query.matches),
+    paused: false, // the visitor pressed "Pause motion" (WCAG 2.2.2): idle drift, floats and ambient pulses stand still
     ease: ease,
     dur: {},
     stagger: 0,
+
+    setPaused: function (on) {
+      this.paused = !!on;
+      root.classList.toggle('motion-paused', this.paused);
+      pauseListeners.forEach(function (fn) { fn(Motion.paused); });
+    },
+    onPausedChange: function (fn) {
+      pauseListeners.push(fn);
+    },
 
     refresh: function () {
       this.reduced = !!(query && query.matches);
@@ -83,6 +95,26 @@
   }
 
   Motion.refresh();
+
+  /* The pause control (WCAG 2.2.2): pages with a scene carry continuous decorative movement (the die's idle drift,
+     the gallery's float, the graph's ambient pulses), so they get a visible way to stop it. Added here, not in the
+     markup, so it only exists where scripts run — with no JavaScript there is no movement and no button. Hidden
+     under reduced motion (CSS), where nothing moves either. Session-only by design: nothing is stored. */
+  if (document.body && document.body.dataset.scene) {
+    var hero = document.querySelector('.scene-hero');
+    if (hero) {
+      // Like the Work cards' Play / Pause: the label is the action it will take, and it swaps.
+      var toggle = document.createElement('button');
+      toggle.type = 'button';
+      toggle.className = 'motion-toggle';
+      toggle.textContent = 'Pause motion';
+      toggle.addEventListener('click', function () {
+        Motion.setPaused(!Motion.paused);
+        toggle.textContent = Motion.paused ? 'Play motion' : 'Pause motion';
+      });
+      hero.appendChild(toggle);
+    }
+  }
 
   if (query) {
     var handler = function () {

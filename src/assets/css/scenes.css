@@ -50,6 +50,18 @@ body[data-scene] main, body[data-scene] .site-footer { position: relative; z-ind
 @media (min-width: 900px) and (max-width: 1279px) { .scene-hero__text { max-width: 40vw; } }
 @media (max-width: 899px) { .scene-hero { padding-top: 66svh; } }
 
+/* The visitor's pause control (motion.js, WCAG 2.2.2): stills the idle drift, the gallery float and the graph's
+   ambient pulses. Fixed, so it stays findable wherever the moving content is. Only exists where scripts run, and
+   under reduced motion nothing moves, so it hides. */
+.motion-toggle {
+  position: fixed; left: var(--space-3); bottom: var(--space-3); z-index: 6;
+  font: var(--weight-medium) 11px/1 var(--font-mono); letter-spacing: var(--tracking-eyebrow); text-transform: uppercase;
+  color: var(--color-text-muted); background: rgba(12, 14, 17, 0.72); border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm); padding: 0.5rem 0.7rem; cursor: pointer;
+}
+.motion-toggle:hover, .motion-toggle:focus-visible { color: var(--color-text-strong); border-color: var(--color-text-muted); }
+.reduced-motion .motion-toggle { display: none; }
+
 .scene-services { border-bottom: 0; }
 .service-panels { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-5); max-width: 28rem; }
 .service-panel h3 { font-size: var(--text-xl); margin: 0 0 var(--space-2); }

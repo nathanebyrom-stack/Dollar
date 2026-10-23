@@ -108,6 +108,7 @@ export function createDie({ tier, engravings, brushed }) {
 
   return {
     root, tilt, yaw, roll, mesh,
+    materials: unique, // post.js blacks these out for its emissive-only glow pass
     // glow: 0..1 per engraved face; tier picks how bright full glow is
     setGlow(glow, glowTier) {
       const max = GLOW_MAX[glowTier] ?? GLOW_MAX.mid;

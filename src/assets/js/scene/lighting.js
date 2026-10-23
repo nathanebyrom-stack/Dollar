@@ -34,6 +34,7 @@ export function createLights(scene, renderer) {
 
   return {
     setRimSweep,
+    all: [key, rim, fill], // post.js hides these for its emissive-only glow pass
     dispose() {
       envTexture.dispose();
       key.dispose(); rim.dispose(); fill.dispose();

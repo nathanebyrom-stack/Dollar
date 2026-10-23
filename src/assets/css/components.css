@@ -63,6 +63,9 @@
 .graph__label { fill: var(--color-text-muted); font: var(--weight-medium) 12px/1 var(--font-mono); letter-spacing: var(--tracking-eyebrow); text-transform: uppercase; text-anchor: middle; }
 .graph__label--lit { fill: var(--color-text-strong); }
 .graph__lit { filter: drop-shadow(0 0 6px var(--color-glow)); }
+/* The living graph (graph.js, D10): elements the script adds. The ambient pulse inherits .graph__pulse; the echo
+   is a thin Spark outline of the node's own box that scales out and fades when a pulse or the pointer reaches it. */
+.graph__echo { fill: none; stroke: var(--color-text-strong); stroke-width: 1.5; opacity: 0; pointer-events: none; filter: drop-shadow(0 0 6px var(--color-glow)); }
 
 /* While it animates, the section is taller than the screen and the graph stays in view as you scroll through it. */
 html.graph-on .scene-graph { min-height: 150svh; }

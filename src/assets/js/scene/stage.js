@@ -78,8 +78,9 @@ export async function start({ tier: initialTier, forced, scene: sceneName, still
     azHero: 0, azPin: 0, // the camera azimuth is their sum: each timeline owns one, so a rewind never clobbers the other
     scrollDolly: 1, shift: 0, yawMix: 0, roll: 0, fade: 0,
     // The pre-rendered still is already on screen, so the live die starts from the same look (exposure 1, "34" lit)
-    // and the Arrival is the rim light sweeping across the bevels, not a fade up from black.
-    exposure: 1, rim: 0.55, glow: { front: 1, top: 0, back: 0, bottom: 0 },
+    // and the Arrival is the rim light sweeping across the bevels, not a fade up from black. bloom (High only, D9)
+    // starts at zero so the engravings' true radiance blooms outward during the sweep: pure addition, no flash.
+    exposure: 1, rim: 0.55, bloom: 0, glow: { front: 1, top: 0, back: 0, bottom: 0 },
   };
   // A service page rests on that service's own face (no rolls): the same state a still is drawn from.
   const SERVICE_FACES = { 'service:web': 'web-design', 'service:marketing': 'marketing', 'service:automation': 'workflow-automation' };
@@ -161,17 +162,21 @@ export async function start({ tier: initialTier, forced, scene: sceneName, still
   let galleryScroll = null; // the gsap.matchMedia holding the Work pin
   let galleryWatch = null;  // IntersectionObserver / media query that start it
 
+  // The idle drift's share: eased to zero while the visitor has pressed "Pause motion" (motion.js, WCAG 2.2.2).
+  let driftK = 1;
+
   // Position the die, lights and camera for time `t` (seconds) from `state`. Pure placement: no drawing.
   function place(t) {
     const az = state.azHero + state.azPin;
     die.root.rotation.y = az;
-    die.tilt.rotation.set(tilt.x + Math.sin(t * DRIFT.x[1]) * DRIFT.x[0], tilt.y + Math.sin(t * DRIFT.y[1]) * DRIFT.y[0], 0);
+    die.tilt.rotation.set(tilt.x + Math.sin(t * DRIFT.x[1]) * DRIFT.x[0] * driftK, tilt.y + Math.sin(t * DRIFT.y[1]) * DRIFT.y[0] * driftK, 0);
     die.yaw.rotation.y = az * (state.yawMix - 1);
     die.roll.rotation.x = state.roll * Math.PI / 2;
     die.setGlow(state.glow, tier);
     die.setFade(state.fade);
     lights.setRimSweep(state.rim);
     renderer.toneMappingExposure = state.exposure;
+    if (post) post.setBloom(state.bloom);
     applyLayout(az);
   }
 
@@ -184,6 +189,7 @@ export async function start({ tier: initialTier, forced, scene: sceneName, still
     const k = Math.min(1, dt * 4);
     tilt.x += (tiltTarget.x - tilt.x) * k;
     tilt.y += (tiltTarget.y - tilt.y) * k;
+    driftK += ((html.classList.contains('motion-paused') ? 0 : 1) - driftK) * k;
     place(t);
     if (gallery) gallery.update(t, dt);
 
@@ -302,6 +308,7 @@ export async function start({ tier: initialTier, forced, scene: sceneName, still
   if (tier === 'high' && !stillSpec) {
     const mod = await import('./post.js');
     post = mod.createComposer({ renderer, scene, camera, width: size.w, height: size.h, pixelRatio: pixelRatio(), falloff });
+    post.setGlowSources({ materials: die.materials, lights: lights.all });
   }
   setTierAttr();
 
@@ -312,6 +319,8 @@ export async function start({ tier: initialTier, forced, scene: sceneName, still
     // sweeps across the bevels. Heavy and precise: no bounce.
     gsap.timeline({ defaults: { ease: 'power2.out' } })
       .to(state, { rim: 1, duration: 1.8, ease: 'power2.inOut' }, 0)
+      // D9: the engravings' radiance blooms outward as the light sweeps. Additive only, so nothing dims or flashes.
+      .to(state, { bloom: 1, duration: 2.1, ease: 'power2.inOut' }, 0.2)
       .call(() => { if (!forced) guard = { elapsed: 0, total: 0, n: 0 }; }, null, 1.5);
     if (serviceSpec) {
       import('./timeline-service.js')

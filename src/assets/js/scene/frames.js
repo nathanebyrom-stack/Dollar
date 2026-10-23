@@ -40,6 +40,13 @@ export function createGallery({ environment, tier, anisotropy, container, cards 
   key.position.set(-3.4, 3.6, 8);
   bodies.add(key, new THREE.HemisphereLight(0xaeb6c2, 0x0c0e11, 0.14));
 
+  // A small silver light that travels with the pointer, just in front of the frames, so a highlight slides across
+  // the machined metal as the visitor moves over the gallery. Eased in and out; zero when there is no fine pointer.
+  const sheen = new THREE.PointLight(0xdbe4f0, 0, 8, 2);
+  sheen.position.z = 1.4;
+  bodies.add(sheen);
+  let sheenK = 0;
+
   const screenColour = (rgb) => (rawScreens ? new THREE.Color().setRGB(rgb[0], rgb[1], rgb[2], THREE.LinearSRGBColorSpace) : new THREE.Color().setRGB(rgb[0], rgb[1], rgb[2], THREE.SRGBColorSpace));
   const loader = new THREE.TextureLoader();
   const colourSpace = rawScreens ? THREE.NoColorSpace : THREE.SRGBColorSpace;
@@ -165,11 +172,22 @@ export function createGallery({ environment, tier, anisotropy, container, cards 
     unit = 2 * CAMERA_DISTANCE * TAN_HALF_FOV / height;
   }
 
+  const root = document.documentElement;
+  let driftK = 1; // the slow float's share: eased to zero under "Pause motion" (motion.js, WCAG 2.2.2)
+
   function update(t, dt) {
     if (!active) return;
     const rects = frames.map((f) => f.media.getBoundingClientRect());
     manageVideo(rects);
     const k = Math.min(1, dt * 6);
+    driftK += ((root.classList.contains('motion-paused') ? 0 : 1) - driftK) * Math.min(1, dt * 4);
+
+    // The pointer sheen: on while a fine pointer is inside the viewport, following it on the frames' plane.
+    const onPage = pointer.fine && pointer.x >= 0 && pointer.x <= width && pointer.y >= 0 && pointer.y <= height;
+    sheenK += ((onPage ? 1 : 0) - sheenK) * k;
+    sheen.intensity = sheenK * 2.1;
+    sheen.position.x = (pointer.x - width / 2) * unit;
+    sheen.position.y = -(pointer.y - height / 2) * unit;
 
     frames.forEach((f, i) => {
       const r = rects[i];
@@ -202,8 +220,8 @@ export function createGallery({ environment, tier, anisotropy, container, cards 
       const y = -(cy - height / 2) * unit * k;
       const lift = 1 + f.glow * 0.015; // a focused card's frame comes forward a touch
       // A slow float so the light keeps moving across the metal: well under a degree.
-      const floatX = Math.sin(t * 0.6 + i * 1.7) * 0.004;
-      const floatY = Math.sin(t * 0.5 + i * 2.3) * 0.006;
+      const floatX = Math.sin(t * 0.6 + i * 1.7) * 0.004 * driftK;
+      const floatY = Math.sin(t * 0.5 + i * 2.3) * 0.006 * driftK;
       for (const g of [f.bodyGroup, f.screenGroup]) {
         g.position.set(x, y, z);
         g.rotation.set(f.tiltX + floatX, f.tiltY + floatY, 0);
@@ -212,7 +230,7 @@ export function createGallery({ environment, tier, anisotropy, container, cards 
     });
   }
 
-  /* Mid: draw both scenes on top of what is already there, depth cleared so the die never interferes. */
+    /* Mid: draw both scenes on top of what is already there, depth cleared so the die never interferes. */
   function renderDirect(renderer) {
     if (!active) return;
     const autoClear = renderer.autoClear;
@@ -230,6 +248,7 @@ export function createGallery({ environment, tier, anisotropy, container, cards 
 
   function dispose() {
     active = false;
+    sheen.dispose();
     occluderMaterial.dispose();
     removeEventListener('pointermove', onMove);
     document.removeEventListener('visibilitychange', onVisibility);

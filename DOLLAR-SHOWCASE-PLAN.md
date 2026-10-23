@@ -151,6 +151,15 @@ Nathan approved ARCHITECTURE.md on 20 Oct and asked Jenny to make the calls on D
 | D7 | Keep Chakra Petch as a fallback only (not preloaded). |
 | D8 | Anna records the Fluid Process UK clips on Nathan's Mac with the capture script and drops them in `src/assets/work/fluid-process-uk/`. Until they land, the gallery uses the Moss & Memory clip and a poster frame. |
 
+On 23 Oct 2026 Nathan asked for a full wow-factor push on the showcase ("bells, whistles, the lot… graphics all the way, interactive") and gave his blessing on the standing cinematic-versus-conservative flags. Jenny made the calls:
+
+| # | Decision |
+|---|---|
+| D9 | **Real bloom on High**, settling the "baked glow versus bloom" flag: a selective emissive-only pass (second quarter-resolution render with lights off and colours black), blurred and added after tone mapping, so the glow is limited to the engravings and Spark keeps its colour — the two problems that ruled out a threshold bloom. The Arrival ramps it in as the rim light sweeps. Mid and the stills keep the baked glow, which stays in the emissive maps. |
+| D10 | **The automation graph lives**: once fully lit and watched, a quiet pulse travels the flow every few seconds and each node answers with a thin Spark echo of its outline; on a fine pointer, hovering a node fires the echo and a pulse down its outgoing edges. All on elements graph.js adds, never on what the scroll scrub owns. Off under reduced motion, off screen, in a hidden tab, and under D12's pause. |
+| D11 | **A pointer sheen in the Work gallery**: a small silver light travels with the cursor just in front of the frames, so a highlight slides across the machined metal. |
+| D12 | **A visible "Pause motion" control** (the idle-drift WCAG 2.2.2 flag): fixed bottom-left on pages with a scene, added by motion.js (so it only exists where scripts run), hidden under reduced motion. It stills the die's idle drift, the gallery float and the graph's ambient pulses. Session-only; nothing is stored. Its labels ("Pause motion" / "Play motion") follow the Work cards' Play/Pause pattern and are interface labels, not copy. |
+
 ## 12. Handover to Claude Code
 
 The rest of the build runs in Claude Code with Nathan, from `HANDOVER.md`. Dollar's weekday sessions are switched off.

@@ -3,6 +3,13 @@
    JavaScript, or under reduced motion, the page shows the finished graph. This script, when motion is allowed, dims it and
    lights it node by node as the section scrolls: a bright line is drawn along each edge, with a short pulse at its head,
    and the node it reaches lights up. It is a generic flow: no client data, no claimed results.
+
+   Once the flow is fully lit and still on screen, it stays alive (decision D10): a quiet pulse travels the whole flow
+   every few seconds, and each node it reaches answers with a thin Spark echo of its own outline. On a fine pointer,
+   moving over a node fires the same echo and sends a pulse down its outgoing edges. All of that runs on elements this
+   script adds (cloned pulses, echo rects), never on anything the scroll scrub owns, so scrolling back remains exact.
+   The life pauses off screen, in a hidden tab, under "Pause motion" (motion.js) and, like everything here, under
+   reduced motion. The echoes and clones are inside the SVG's role="img", so assistive tech never sees them.
    Needs gsap, ScrollTrigger, motion.js and smooth.js loaded first (all deferred, in order). */
 (function () {
   'use strict';
@@ -28,7 +35,12 @@
   function animate(svg) {
     if (!svg) return;
     var nodes = {};
-    [].forEach.call(svg.querySelectorAll('.graph__node'), function (n) { nodes[n.getAttribute('data-node')] = n.querySelector('.graph__lit'); });
+    var nodeGroups = {};
+    [].forEach.call(svg.querySelectorAll('.graph__node'), function (n) {
+      var id = n.getAttribute('data-node');
+      nodes[id] = n.querySelector('.graph__lit');
+      nodeGroups[id] = n;
+    });
     var edges = {};
     [].forEach.call(svg.querySelectorAll('.graph__edge'), function (e) { edges[e.getAttribute('data-from') + '>' + e.getAttribute('data-to')] = e; });
 
@@ -66,7 +78,95 @@
       (step.nodes || (step.edges && step.node ? [step.node] : [])).forEach(function (id) { light(id, step.nodeAt); });
     });
 
-    return function () { root.classList.remove('graph-on'); }; // gsap.matchMedia reverts the tweens and the inline styles
+    /* ---- The living graph (D10): ambient pulses and node echoes, on elements added here ---- */
+    var added = [];
+    var ambientPulses = {};
+    Object.keys(edges).forEach(function (k) {
+      var clone = edges[k].querySelector('.graph__pulse').cloneNode(false);
+      clone.classList.add('graph__pulse--ambient');
+      gsap.set(clone, { strokeDasharray: '16 ' + edges[k]._length * 2, strokeDashoffset: 16, opacity: 0 });
+      edges[k].appendChild(clone);
+      added.push(clone);
+      ambientPulses[k] = clone;
+    });
+    var echoes = {};
+    Object.keys(nodeGroups).forEach(function (id) {
+      var box = nodeGroups[id].querySelector('.graph__box');
+      var echo = box.cloneNode(false);
+      echo.setAttribute('class', 'graph__echo');
+      gsap.set(echo, { opacity: 0 });
+      nodeGroups[id].appendChild(echo);
+      added.push(echo);
+      echoes[id] = echo;
+    });
+
+    function echoPop(id, strength) {
+      var echo = echoes[id];
+      if (!echo) return;
+      gsap.killTweensOf(echo);
+      gsap.fromTo(echo,
+        { opacity: 0.55 * strength, scale: 1, transformOrigin: '50% 50%' },
+        { opacity: 0, scale: 1.45, duration: 0.9, ease: 'power2.out' });
+    }
+    function pulseEdge(k, at, timeline) {
+      var clone = ambientPulses[k];
+      var length = edges[k]._length;
+      var into = timeline || gsap.timeline();
+      into.fromTo(clone, { strokeDashoffset: 16, opacity: 0.85 }, { strokeDashoffset: -length, opacity: 0.85, duration: 0.6, ease: 'none' }, at || 0)
+        .set(clone, { opacity: 0 }, (at || 0) + 0.6);
+    }
+
+    // One quiet pulse through the whole flow, every few seconds, while the graph is lit and watched.
+    var ambient = gsap.timeline({ paused: true, repeat: -1, repeatDelay: 3.1 });
+    STEPS.forEach(function (step) {
+      if (step.node && !step.edges) ambient.call(function () { echoPop(step.node, 1); }, null, step.at);
+      (step.edges || []).forEach(function (pair) { pulseEdge(pair.join('>'), step.at, ambient); });
+      (step.nodes || (step.edges && step.node ? [step.node] : [])).forEach(function (id) {
+        ambient.call(function () { echoPop(id, 1); }, null, step.at + 0.55);
+      });
+    });
+
+    // Run only while: fully lit, on screen, tab visible, and motion not paused by the visitor.
+    var state = { lit: false, seen: false };
+    function sync() {
+      var paused = Motion && Motion.paused;
+      var run = state.lit && state.seen && !document.hidden && !paused;
+      if (run && ambient.paused()) ambient.play();
+      else if (!run && !ambient.paused()) { ambient.pause(); Object.keys(ambientPulses).forEach(function (k) { gsap.set(ambientPulses[k], { opacity: 0 }); }); }
+    }
+    tl.eventCallback('onUpdate', function () { state.lit = tl.progress() > 0.999; sync(); });
+    state.lit = tl.progress() > 0.999;
+    var io = new IntersectionObserver(function (entries) {
+      state.seen = entries.some(function (e) { return e.isIntersecting; });
+      sync();
+    }, { threshold: 0.45 });
+    io.observe(svg);
+    document.addEventListener('visibilitychange', sync);
+    if (Motion && Motion.onPausedChange) Motion.onPausedChange(sync);
+    sync();
+
+    // A fine pointer over a node: the node answers, and its outgoing edges carry one pulse.
+    var hoverHandlers = [];
+    if (window.matchMedia && matchMedia('(pointer: fine)').matches) {
+      Object.keys(nodeGroups).forEach(function (id) {
+        var handler = function () {
+          echoPop(id, 1.2);
+          Object.keys(edges).forEach(function (k) { if (k.indexOf(id + '>') === 0) pulseEdge(k, 0, null); });
+        };
+        nodeGroups[id].addEventListener('pointerenter', handler);
+        hoverHandlers.push({ el: nodeGroups[id], handler: handler });
+      });
+    }
+
+    return function () { // gsap.matchMedia reverts the tweens and the inline styles
+      root.classList.remove('graph-on');
+      ambient.kill();
+      gsap.killTweensOf(added);
+      io.disconnect();
+      document.removeEventListener('visibilitychange', sync);
+      hoverHandlers.forEach(function (h) { h.el.removeEventListener('pointerenter', h.handler); });
+      added.forEach(function (el) { el.parentNode && el.parentNode.removeChild(el); });
+    };
   }
 
   function build() {
