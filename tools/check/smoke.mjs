@@ -420,6 +420,51 @@ async function sceneChecks() {
     await t.ctx.close();
   }
 
+  // ---- Site-wide scroll-and-reveal (D13) ----
+  { // A below-fold section is held back until scrolled to, reveals fully, and leaves no inline styles behind.
+    const t = await open('work/fluid-process-uk/');
+    await t.page.waitForTimeout(900);
+    const before = await t.page.evaluate(() => {
+      const h2 = document.getElementById('design-title');
+      return { op: +getComputedStyle(h2).opacity, below: h2.getBoundingClientRect().top > innerHeight };
+    });
+    await t.page.evaluate(() => scrollTo(0, document.body.scrollHeight));
+    await t.page.waitForTimeout(1500);
+    const after = await t.page.evaluate(() => {
+      const h2 = document.getElementById('design-title');
+      return { op: +getComputedStyle(h2).opacity, inline: h2.getAttribute('style') || '' };
+    });
+    // The case media drifts (parallax) as the page scrolls past it.
+    const drift = await t.page.evaluate(async () => {
+      const m = document.querySelector('.case .work-card__media');
+      scrollTo(0, 0); await new Promise((r) => setTimeout(r, 450));
+      const a = getComputedStyle(m).transform;
+      scrollTo(0, 600); await new Promise((r) => setTimeout(r, 450));
+      return a !== getComputedStyle(m).transform;
+    });
+    await report('Reveal (D13): a below-fold section waits, reveals in full with no inline styles left, and case media drifts',
+      t, before.op === 0 && before.below && after.op === 1 && after.inline === '' && drift, JSON.stringify({ before, after, drift }));
+    await t.ctx.close();
+  }
+  { // Reduced motion: nothing is hidden and nothing is held back, on a page with reveals.
+    const t = await open('work/fluid-process-uk/', { reducedMotion: true });
+    await t.page.waitForTimeout(700);
+    const all = await t.page.evaluate(() => [...document.querySelectorAll('main section > *')].every((e) => +getComputedStyle(e).opacity === 1));
+    await report('Reveal (D13): under reduced motion everything is visible at once', t, all, '');
+    await t.ctx.close();
+  }
+  { // The Home scroll scenes stay out of reveal's hands: their children carry no reveal inline styles.
+    const t = await open('?tier=low');
+    await t.page.waitForTimeout(1100);
+    const clean = await t.page.evaluate(() =>
+      ['#scene-hero', '#scene-services', '#scene-work', '#scene-graph'].every((q) => {
+        const s = document.querySelector(q);
+        return !s || [...s.children].every((c) => !(c.getAttribute('style') || '').includes('translate'));
+      }));
+    await report('Reveal (D13): the Home scroll scenes and graph are untouched by it', t, clean, '');
+    await t.ctx.close();
+  }
+
   // ---- Contact, About, Privacy (Phase 6) ----
   { // The contact form: structure Netlify Forms needs, accessible labels, a honeypot nobody can reach, and the whole round trip.
     const t = await open('contact/');
