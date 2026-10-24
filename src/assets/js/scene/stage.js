@@ -12,6 +12,7 @@ import { createDie } from './die.js';
 import { createLights } from './lighting.js';
 import { buildEngravings, buildBrushed } from './engravings.js';
 import { createDieLabel } from './label.js';
+import { createDust } from './dust.js';
 
 const html = document.documentElement;
 const ELEVATION = 0.12;          // radians above the die's equator: enough to read it as an object
@@ -74,6 +75,10 @@ export async function start({ tier: initialTier, forced, scene: sceneName, still
   const die = createDie({ tier, engravings, brushed });
   scene.add(die.root);
 
+  // The atmosphere (D19): a field of silver motes at every depth around the die. Not on a still render.
+  const dust = stillSpec ? null : createDust({ tier });
+  if (dust) scene.add(dust.points);
+
   // Everything the scroll timelines drive. glow is per engraved face, 0..1.
   const state = {
     azHero: 0, azPin: 0, // the camera azimuth is their sum: each timeline owns one, so a rewind never clobbers the other
@@ -81,7 +86,7 @@ export async function start({ tier: initialTier, forced, scene: sceneName, still
     // The pre-rendered still is already on screen, so the live die starts from the same look (exposure 1, "34" lit)
     // and the Arrival is the rim light sweeping across the bevels, not a fade up from black. bloom (High only, D9)
     // starts at zero so the engravings' true radiance blooms outward during the sweep: pure addition, no flash.
-    exposure: 1, rim: 0.55, bloom: 0, glow: { front: 1, top: 0, back: 0, bottom: 0 },
+    exposure: 1, rim: 0.55, bloom: 0, air: 0, glow: { front: 1, top: 0, back: 0, bottom: 0 },
   };
   // A service page rests on that service's own face (no rolls): the same state a still is drawn from.
   const SERVICE_FACES = { 'service:web': 'web-design', 'service:marketing': 'marketing', 'service:automation': 'workflow-automation' };
@@ -208,6 +213,7 @@ export async function start({ tier: initialTier, forced, scene: sceneName, still
     tilt.y += (tiltTarget.y - tilt.y) * k;
     driftK += ((html.classList.contains('motion-paused') ? 0 : 1) - driftK) * k;
     place(t);
+    if (dust) dust.update(dt * driftK, state.air * (1 - state.fade), pixelRatio());
     if (gallery) gallery.update(t, dt);
 
     if (post) post.render();
@@ -313,6 +319,7 @@ export async function start({ tier: initialTier, forced, scene: sceneName, still
     io.disconnect();
     document.removeEventListener('visibilitychange', updateLoop);
     if (post) post.dispose();
+    if (dust) dust.dispose();
     die.dispose(); lights.dispose();
     renderer.dispose();
     canvas.remove();
@@ -326,7 +333,8 @@ export async function start({ tier: initialTier, forced, scene: sceneName, still
   if (tier === 'high' && !stillSpec) {
     const mod = await import('./post.js');
     post = mod.createComposer({ renderer, scene, camera, width: size.w, height: size.h, pixelRatio: pixelRatio(), falloff });
-    post.setGlowSources({ materials: die.materials, lights: lights.all });
+    // The dust is light, not an engraving: hidden with the lights during the emissive-only glow pass.
+    post.setGlowSources({ materials: die.materials, lights: dust ? [...lights.all, dust.points] : lights.all });
   }
   setTierAttr();
 
@@ -339,6 +347,8 @@ export async function start({ tier: initialTier, forced, scene: sceneName, still
       .to(state, { rim: 1, duration: 1.8, ease: 'power2.inOut' }, 0)
       // D9: the engravings' radiance blooms outward as the light sweeps. Additive only, so nothing dims or flashes.
       .to(state, { bloom: 1, duration: 2.1, ease: 'power2.inOut' }, 0.2)
+      // D19: the air fills with light as the sweep crosses — the world resolves around the die.
+      .to(state, { air: 1, duration: 2.6, ease: 'power2.inOut' }, 0.4)
       .call(() => { if (!forced) guard = { elapsed: 0, total: 0, n: 0 }; }, null, 1.5);
     if (serviceSpec) {
       import('./timeline-service.js')

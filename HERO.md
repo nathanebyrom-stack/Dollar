@@ -23,6 +23,7 @@ A single 34 die, machined from dark graphite metal with brushed-silver edges, fl
 
 ## Look
 - Background: Graphite `#0C0E11` with a faint radial falloff and fine film grain.
+- The atmosphere (D19, Nathan 24 Oct): a field of silver-and-Spark light motes at every depth around the die, with a camera-focus bokeh — the die floats in a world, not on a backdrop. Resolves with the Arrival; stills under "Pause motion"; absent on the Low and reduced-motion paths.
 - Light: one cool key, one silver rim, a soft environment for reflections. Subtle bloom on the Spark engravings only (High tier).
 - Text sits left on desktop, below the die on mobile. Headline copy is [PLACEHOLDER] until Nathan supplies it.
 
