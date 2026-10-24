@@ -9,6 +9,8 @@
    - Reduced motion: nothing is pinned, scrubbed or moved. Services is an ordinary list; each face crossfades in as its
      panel passes the middle of the screen (end states only, ARCHITECTURE section 13). */
 
+import { createDieLabel, SCENE_FACES } from './label.js';
+
 const FACES = ['34', 'web-design', 'marketing', 'workflow-automation'];
 const SIZES = '(min-width: 900px) min(76vh, 52vw), min(54vh, 112vw)';
 const html = document.documentElement;
@@ -49,7 +51,13 @@ export function start({ scene }) {
   html.classList.remove('scene-live');
   html.classList.add('scene-still');
 
+  // The face caption (D18). Inside the frame, so it crossfades, shifts and fades away exactly with the die.
+  const label = createDieLabel(frame);
+  label.el.classList.add('die-label--still');
+  label.el.style.opacity = 1;
+
   if (scene !== 'home') {
+    label.set(SCENE_FACES[scene] || '34');
     // A service page: its own still is already in the page (the die's face for that service), so nothing is fetched or
     // stepped. The die just fades away as the hero scrolls out, with or without pinning, so no text sits over it.
     const hero = document.getElementById('scene-hero');
@@ -61,7 +69,7 @@ export function start({ scene }) {
       }, { threshold: [0, 0.01], rootMargin: '-40% 0px 0px 0px' });
       io.observe(hero);
     }
-    return { stop() { if (io) io.disconnect(); html.classList.remove('scene-still'); } };
+    return { stop() { if (io) io.disconnect(); label.dispose(); html.classList.remove('scene-still'); } };
   }
 
   ensureStills(frame);
@@ -78,6 +86,7 @@ export function start({ scene }) {
     step = next;
     stills.forEach((el, face) => el.classList.toggle('is-active', face === FACES[next]));
     panels.forEach((p, i) => p.classList.toggle('is-active', i === next - 1));
+    label.set(FACES[next]);
   }
   setStep(0);
 
@@ -135,6 +144,7 @@ export function start({ scene }) {
   return {
     stop() {
       cleanups.forEach((fn) => fn());
+      label.dispose();
       html.classList.remove('scene-still');
     },
   };

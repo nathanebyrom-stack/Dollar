@@ -40,6 +40,17 @@
   .die-still, .die-frame { transition: opacity 0.5s ease !important; }
 }
 
+/* The die's face caption (D18): a small machined label naming the face that is showing. On the live scene,
+   stage.js positions it under the die and drives its opacity from the face's glow; on the stills path it sits
+   inside the frame, so it crossfades, shifts and fades exactly with the die. Decorative (aria-hidden): the
+   service panels and page headings carry the same names for assistive tech. */
+.die-label {
+  position: absolute; left: 0; top: 0; opacity: 0; pointer-events: none; white-space: nowrap;
+  font: var(--weight-medium) 12px/1 var(--font-mono); letter-spacing: var(--tracking-eyebrow); text-transform: uppercase;
+  color: var(--color-text); text-align: center;
+}
+.die-label--still { left: 50%; top: calc(100% + 0.3rem); transform: translateX(-50%); transition: opacity var(--dur-slow) var(--ease-out); }
+
 /* Page content sits above the stage. */
 body[data-scene] main, body[data-scene] .site-footer { position: relative; z-index: 1; }
 

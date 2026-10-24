@@ -11,6 +11,7 @@ import * as THREE from '../../vendor/three-r186/three.min.js';
 import { createDie } from './die.js';
 import { createLights } from './lighting.js';
 import { buildEngravings, buildBrushed } from './engravings.js';
+import { createDieLabel } from './label.js';
 
 const html = document.documentElement;
 const ELEVATION = 0.12;          // radians above the die's equator: enough to read it as an object
@@ -165,6 +166,21 @@ export async function start({ tier: initialTier, forced, scene: sceneName, still
   // The idle drift's share: eased to zero while the visitor has pressed "Pause motion" (motion.js, WCAG 2.2.2).
   let driftK = 1;
 
+  // The face caption (D18): follows the die, reads the dominant glowing face, fades with it and with the Work hand-off.
+  const label = stillSpec ? null : createDieLabel(stageEl);
+  let labelOpacity = -1;
+  function placeLabel(shiftPx) {
+    if (!label) return;
+    let best = null;
+    let bestG = 0;
+    for (const face in state.glow) if (state.glow[face] > bestG) { bestG = state.glow[face]; best = face; }
+    const faceName = { front: '34', top: 'web-design', back: 'marketing', bottom: 'workflow-automation' }[best];
+    if (faceName) label.set(faceName);
+    const opacity = Math.max(0, Math.min(1, (bestG - 0.35) / 0.65)) * (1 - state.fade);
+    if (Math.abs(opacity - labelOpacity) > 0.005) { label.el.style.opacity = opacity.toFixed(3); labelOpacity = opacity; }
+    label.el.style.transform = `translate(${Math.round(layout.cx + shiftPx)}px, ${Math.round(layout.cy + layout.die + 14)}px) translateX(-50%)`;
+  }
+
   // Position the die, lights and camera for time `t` (seconds) from `state`. Pure placement: no drawing.
   function place(t) {
     const az = state.azHero + state.azPin;
@@ -178,6 +194,7 @@ export async function start({ tier: initialTier, forced, scene: sceneName, still
     renderer.toneMappingExposure = state.exposure;
     if (post) post.setBloom(state.bloom);
     applyLayout(az);
+    placeLabel(size.w >= 900 ? size.w * 0.10 * state.shift : 0);
   }
 
   function render(timeMs) {
@@ -291,6 +308,7 @@ export async function start({ tier: initialTier, forced, scene: sceneName, still
 
   function dispose() {
     disposed = true;
+    if (label) label.dispose();
     renderer.setAnimationLoop(null);
     io.disconnect();
     document.removeEventListener('visibilitychange', updateLoop);

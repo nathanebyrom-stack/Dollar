@@ -36,11 +36,13 @@
           return el.tagName !== 'SCRIPT' && el.tagName !== 'TEMPLATE';
         });
         if (!items.length) return;
+        // D17: depth. Content starts a step INTO the page (back on z, a touch of top-tilt) and settles out
+        // toward the reader — real perspective, not just a slide. Transform and opacity only, as before.
         gsap.fromTo(items,
-          { opacity: 0, y: 18 },
+          { opacity: 0, y: 18, z: -90, rotationX: 5, transformPerspective: 900 },
           {
-            opacity: 1, y: 0, duration: 0.7, ease: 'power3.out', stagger: 0.09,
-            clearProps: 'opacity,transform', // a finished reveal leaves no inline styles behind
+            opacity: 1, y: 0, z: 0, rotationX: 0, duration: 0.85, ease: 'power3.out', stagger: 0.09,
+            clearProps: 'opacity,transform,perspective', // a finished reveal leaves no inline styles behind
             scrollTrigger: { trigger: section, start: 'top 88%', once: true },
           });
       });
@@ -49,12 +51,18 @@
       [].forEach.call(document.querySelectorAll('.case .work-card__media, .case .case-media'), function (media) {
         var section = media.closest('section') || media;
         if (section.matches(SKIP) || section.closest(SKIP)) return;
-        gsap.fromTo(media, { scale: 1.03 }, {
-          scale: 1, duration: 1.1, ease: 'power2.out',
+        // D17: the media rises out of the page as it arrives, then drifts with a slow scale swell as it
+        // crosses the screen — nearer at the middle, further at the edges, like a plate under a camera.
+        gsap.fromTo(media, { z: -120, transformPerspective: 900 }, {
+          z: 0, duration: 1.2, ease: 'power2.out',
           scrollTrigger: { trigger: media, start: 'top 88%', once: true },
         });
         gsap.fromTo(media, { yPercent: 2.5 }, {
           yPercent: -2.5, ease: 'none',
+          scrollTrigger: { trigger: media, start: 'top bottom', end: 'bottom top', scrub: true },
+        });
+        gsap.fromTo(media, { scale: 0.985 }, {
+          scale: 1.015, ease: 'sine.inOut',
           scrollTrigger: { trigger: media, start: 'top bottom', end: 'bottom top', scrub: true },
         });
       });

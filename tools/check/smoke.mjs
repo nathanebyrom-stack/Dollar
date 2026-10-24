@@ -465,6 +465,26 @@ async function sceneChecks() {
     await t.ctx.close();
   }
 
+  // ---- The die's face caption (D18) ----
+  { // Live: the label names the resting face and is aria-hidden; Low service page: the label names that service.
+    const t = await open('?tier=high');
+    await started(t.page);
+    await t.page.waitForTimeout(2200);
+    const live = await t.page.evaluate(() => {
+      const l = document.querySelector('.die-label');
+      return l ? { text: l.textContent, hidden: l.getAttribute('aria-hidden'), op: +getComputedStyle(l).opacity } : null;
+    });
+    await report('Die caption (D18): the live die is captioned "34 Automation", visibly, and hidden from assistive tech',
+      t, live && live.text === '34 Automation' && live.hidden === 'true' && live.op > 0.9, JSON.stringify(live));
+    await t.ctx.close();
+    const t2 = await open('services/web-design/?tier=low');
+    await t2.page.waitForTimeout(900);
+    const low = await t2.page.evaluate(() => document.querySelector('.die-frame .die-label')?.textContent);
+    await report('Die caption (D18): the Low path captions a service page with its own face',
+      t2, low === 'Web design', JSON.stringify({ low }));
+    await t2.ctx.close();
+  }
+
   // ---- Opt-in sound (D14) ----
   { // Scene pages get a "Play sound" control; nothing starts until it is pressed; pressing flips it both ways.
     const t = await open('?tier=low');
@@ -557,8 +577,13 @@ async function sceneChecks() {
   }
 
   { // About: the photo slot is 4:5, beside the text on desktop and above it on a phone.
+    // Measured once the entrance reveal has settled (D17's perspective skews rects mid-flight; D13's check
+    // proves the reveal leaves no styles behind, so the settled page is the one this layout contract is about).
     for (const [label, viewport, side] of [['desktop', { width: 1440, height: 900 }, true], ['phone', { width: 375, height: 800 }, false]]) {
       const t = await open('about/', { viewport });
+      // The reveal styles the section's direct children (.about-grid, not the slot inside it); deferred scripts run
+      // before `load`, so by now the entrance styles are on and this waits for them to finish and clear.
+      await t.page.waitForFunction(() => !document.querySelector('.about-grid').getAttribute('style'), null, { timeout: 10000 }).catch(() => {});
       const r = await t.page.evaluate(() => { const f = document.querySelector('.photo-slot__frame').getBoundingClientRect(); const x = document.querySelector('.about-grid__text').getBoundingClientRect(); return { ratio: +(f.width / f.height).toFixed(2), besideText: x.left >= f.right - 1 && Math.abs(x.top - f.top) < 40, overflow: document.documentElement.scrollWidth > innerWidth }; });
       await report(`About (${label}): a 4:5 photo slot ${side ? 'beside' : 'above'} the text`, t, Math.abs(r.ratio - 0.8) < 0.02 && r.besideText === side && !r.overflow, JSON.stringify(r));
       await t.ctx.close();
