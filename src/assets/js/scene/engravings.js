@@ -228,7 +228,7 @@ export async function buildEngravings({ size, anisotropy, halo }) {
     const height = new Float32Array(size * size);
     for (let i = 0; i < height.length; i++) height[i] = dark[i * 4] / 255;
     blur(height, size, radius, 2);
-    out[face] = { normalMap: texture(normalMapFromHeight(height, size, depth), false, anisotropy) };
+    out[face] = { normalMap: texture(normalMapFromHeight(height, size, depth), false, anisotropy), mask };
     if (spec.etch) {
       // The light spreads across the engraving in its own direction (D15): one emissive map per step,
       // the last being the whole glyph, so a still or a finished roll looks exactly as before.

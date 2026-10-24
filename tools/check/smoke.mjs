@@ -465,6 +465,28 @@ async function sceneChecks() {
     await t.ctx.close();
   }
 
+  // ---- The swarm (D19 stage two) ----
+  { // Mid-roll the swarm holds its symbol (visible, metal dimmed); at rest it is dark and the exposure is back.
+    const t = await open('?tier=high');
+    await started(t.page);
+    await t.page.waitForTimeout(2600);
+    const read = () => t.page.evaluate(() => ({ exposure: +window.__scene.renderer.toneMappingExposure.toFixed(2) }));
+    // Under software rendering a frame can take longer than any fixed wait, so wait for frames to advance.
+    const settle = () => t.page.evaluate(() => new Promise((resolve) => {
+      const start = window.__scene.frames;
+      (function look() { (window.__scene.frames >= start + 3) ? resolve() : setTimeout(look, 50); })();
+    }));
+    await t.page.evaluate(() => { const s = window.__scene.state; s.yawMix = 1; s.roll = 0.7; s.glow = { front: 0.2, top: 0, back: 0, bottom: 0 }; });
+    await settle();
+    const held = await read();
+    await t.page.evaluate(() => { const s = window.__scene.state; s.roll = 1; s.glow = { front: 0, top: 1, back: 0, bottom: 0 }; });
+    await settle();
+    const seated = await read();
+    await report('Swarm (D19): mid-roll the metal dims under the held symbol, and seating restores it',
+      t, held.exposure < 0.8 && seated.exposure > 0.95, JSON.stringify({ held, seated }));
+    await t.ctx.close();
+  }
+
   // ---- The die's face caption (D18) ----
   { // Live: the label names the resting face and is aria-hidden; Low service page: the label names that service.
     const t = await open('?tier=high');

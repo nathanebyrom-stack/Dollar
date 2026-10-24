@@ -18,6 +18,7 @@ A single 34 die, machined from dark graphite metal with brushed-silver edges, fl
 - Arrival (0–1.5 s, after first paint): the die resolves out of black as the rim light sweeps across it. No bounce, no spin-up; it should feel heavy and precise.
 - Scroll, Hero section: the camera dollies a slow half-orbit round the die. The die itself barely moves.
 - Scroll, Services section (pinned): each scroll step rolls the die a quarter-turn to the next service face, eased like a machined part seating into place. The matching text panel slides in beside it.
+- The swarm (D19 stage two, Nathan 24 Oct): during each roll, Spark particles burst off the shell, form the arriving face's symbol as a hologram in front of the die (the metal dims beneath it), then dive onto the face as it seats, where the engraving's etch light-up takes over. Scroll-driven; absent on Low and reduced-motion paths.
 - Idle: very slow drift (under 2° per second) so the light keeps moving across the metal.
 - Pointer (desktop only): the die tilts up to 4° toward the cursor.
 

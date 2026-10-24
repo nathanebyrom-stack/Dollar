@@ -13,6 +13,7 @@ import { createLights } from './lighting.js';
 import { buildEngravings, buildBrushed } from './engravings.js';
 import { createDieLabel } from './label.js';
 import { createDust } from './dust.js';
+import { createSwarm } from './swarm.js';
 
 const html = document.documentElement;
 const ELEVATION = 0.12;          // radians above the die's equator: enough to read it as an object
@@ -78,6 +79,10 @@ export async function start({ tier: initialTier, forced, scene: sceneName, still
   // The atmosphere (D19): a field of silver motes at every depth around the die. Not on a still render.
   const dust = stillSpec ? null : createDust({ tier });
   if (dust) scene.add(dust.points);
+
+  // The swarm (D19 stage two): Home only — it rides the Services rolls.
+  const swarm = (sceneName === 'home' && !stillSpec) ? createSwarm({ tier, engravings }) : null;
+  if (swarm) scene.add(swarm.points);
 
   // Everything the scroll timelines drive. glow is per engraved face, 0..1.
   const state = {
@@ -170,6 +175,8 @@ export async function start({ tier: initialTier, forced, scene: sceneName, still
 
   // The idle drift's share: eased to zero while the visitor has pressed "Pause motion" (motion.js, WCAG 2.2.2).
   let driftK = 1;
+  // How strongly the swarm is holding its symbol (one frame behind; see place): the metal dims beneath it.
+  let swarmHold = 0;
 
   // The face caption (D18): follows the die, reads the dominant glowing face, fades with it and with the Work hand-off.
   const label = stillSpec ? null : createDieLabel(stageEl);
@@ -196,7 +203,7 @@ export async function start({ tier: initialTier, forced, scene: sceneName, still
     die.setGlow(state.glow, tier);
     die.setFade(state.fade);
     lights.setRimSweep(state.rim);
-    renderer.toneMappingExposure = state.exposure;
+    renderer.toneMappingExposure = state.exposure * (1 - swarmHold * 0.45);
     if (post) post.setBloom(state.bloom);
     applyLayout(az);
     placeLabel(size.w >= 900 ? size.w * 0.10 * state.shift : 0);
@@ -214,6 +221,7 @@ export async function start({ tier: initialTier, forced, scene: sceneName, still
     driftK += ((html.classList.contains('motion-paused') ? 0 : 1) - driftK) * k;
     place(t);
     if (dust) dust.update(dt * driftK, state.air * (1 - state.fade), pixelRatio());
+    if (swarm) { swarm.setPixelRatio(pixelRatio()); swarmHold = swarm.update(dt * driftK, state.roll, camera, die.root.position) || 0; }
     if (gallery) gallery.update(t, dt);
 
     if (post) post.render();
@@ -320,6 +328,7 @@ export async function start({ tier: initialTier, forced, scene: sceneName, still
     document.removeEventListener('visibilitychange', updateLoop);
     if (post) post.dispose();
     if (dust) dust.dispose();
+    if (swarm) swarm.dispose();
     die.dispose(); lights.dispose();
     renderer.dispose();
     canvas.remove();
@@ -333,8 +342,8 @@ export async function start({ tier: initialTier, forced, scene: sceneName, still
   if (tier === 'high' && !stillSpec) {
     const mod = await import('./post.js');
     post = mod.createComposer({ renderer, scene, camera, width: size.w, height: size.h, pixelRatio: pixelRatio(), falloff });
-    // The dust is light, not an engraving: hidden with the lights during the emissive-only glow pass.
-    post.setGlowSources({ materials: die.materials, lights: dust ? [...lights.all, dust.points] : lights.all });
+    // The dust and swarm are light, not engravings: hidden with the lights during the emissive-only glow pass.
+    post.setGlowSources({ materials: die.materials, lights: [...lights.all, dust, swarm].filter(Boolean).map((x) => x.points || x) });
   }
   setTierAttr();
 
