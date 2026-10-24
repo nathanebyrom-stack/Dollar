@@ -21,8 +21,8 @@ const SIDE_SIGN = [1, -1, 1, -1, 1, -1];
    moment its face reaches the front (x is the screen's right, v is up):
      front  v = y        top  v = -z        back  v = -y        bottom  v = z                                  */
 const UV = [
-  (x, y, z) => [z + 0.5, y + 0.5],  // +x (plain)
-  (x, y, z) => [z + 0.5, y + 0.5],  // -x (plain)
+  (x, y, z) => [0.5 - z, y + 0.5],  // +x right: viewed from +x the screen's right is -z, so u runs against z (D15: it carries text now)
+  (x, y, z) => [z + 0.5, y + 0.5],  // -x left: viewed from -x the screen's right is +z
   (x, y, z) => [x + 0.5, 0.5 - z],  // +y top
   (x, y, z) => [x + 0.5, z + 0.5],  // -y bottom
   (x, y, z) => [x + 0.5, y + 0.5],  // +z front
@@ -99,20 +99,30 @@ export function createDie({ tier, engravings, brushed }) {
   const root = new THREE.Group(); root.add(tilt);
 
   const glowTargets = {
-    front: materials[FACE_INDEX.front],
-    top: materials[FACE_INDEX.top],
-    back: materials[FACE_INDEX.back],
-    bottom: materials[FACE_INDEX.bottom],
+    front: { material: materials[FACE_INDEX.front], stages: engravings.front.stages },
+    top: { material: materials[FACE_INDEX.top], stages: engravings.top.stages },
+    back: { material: materials[FACE_INDEX.back], stages: engravings.back.stages },
+    bottom: { material: materials[FACE_INDEX.bottom], stages: engravings.bottom.stages },
   };
   const unique = [...new Set(materials)];
 
   return {
     root, tilt, yaw, roll, mesh,
     materials: unique, // post.js blacks these out for its emissive-only glow pass
-    // glow: 0..1 per engraved face; tier picks how bright full glow is
+    // glow: 0..1 per engraved face; tier picks how bright full glow is. The glow value also picks the etch
+    // stage (D15), so as a face lights, the glow spreads across its engraving in that face's own direction;
+    // at 1 it is the whole glyph, identical to the stills.
     setGlow(glow, glowTier) {
       const max = GLOW_MAX[glowTier] ?? GLOW_MAX.mid;
-      for (const face in glowTargets) glowTargets[face].emissiveIntensity = (glow[face] || 0) * max;
+      for (const face in glowTargets) {
+        const g = glow[face] || 0;
+        const { material, stages } = glowTargets[face];
+        material.emissiveIntensity = g * max;
+        if (stages && g > 0) {
+          const stage = stages[Math.min(stages.length - 1, Math.floor(g * stages.length))];
+          if (material.emissiveMap !== stage) material.emissiveMap = stage;
+        }
+      }
     },
     // 1 = solid, 0 = gone; scale shrinks with it for the Work hand-off
     setFade(fade) {

@@ -121,7 +121,7 @@
   --text-xl:   clamp(1.3rem, 1.17rem + 0.6vw, 1.6rem);
   --text-2xl:  clamp(1.6rem, 1.36rem + 1.1vw, 2.25rem);
   --text-3xl:  clamp(2rem, 1.56rem + 2vw, 3.25rem);
-  --text-4xl:  clamp(2.5rem, 1.8rem + 3.2vw, 4.75rem);
+  --text-4xl:  clamp(2.75rem, 1.85rem + 4vw, 5.5rem); /* D16: display headings sized to carry the page */
 
   --leading-tight: 1.1;
   --leading-snug: 1.3;

@@ -24,7 +24,13 @@ export function createMaterials({ tier, engravings, brushed }) {
     roughnessMap: brushed,
     transparent: true,
   };
-  const plain = new Material(faceBase);
+
+  // Side faces (D15): engraved text, stamped like a data plate — a recess in the metal, never lit.
+  const stamped = (face) => new Material({
+    ...faceBase,
+    normalMap: engravings[face].normalMap,
+    normalScale: new THREE.Vector2(1, 1),
+  });
 
   const engraved = (face) => {
     const m = new Material({
@@ -47,8 +53,8 @@ export function createMaterials({ tier, engravings, brushed }) {
   });
 
   const materials = [];
-  materials[FACE_INDEX.right] = plain;
-  materials[FACE_INDEX.left] = plain;
+  materials[FACE_INDEX.right] = stamped('right');
+  materials[FACE_INDEX.left] = stamped('left');
   materials[FACE_INDEX.top] = engraved('top');
   materials[FACE_INDEX.bottom] = engraved('bottom');
   materials[FACE_INDEX.front] = engraved('front');

@@ -8,8 +8,9 @@ A single 34 die, machined from dark graphite metal with brushed-silver edges, fl
 
 ## Object
 - Rounded cube, slightly chamfered edges catching a cool silver rim light. Materials: PBR graphite (metalness high, roughness 0.35–0.5) with brushed-silver bevels.
-- Faces carry engraved symbols, not pips: one per service (Web design, Marketing, Workflow automation) plus the "34" mark. The remaining faces are plain machined metal.
-- Engravings glow faintly in Spark (`#F2F5FA`) when their face is active.
+- Faces carry engraved symbols, not pips: one per service (Web design, Marketing, Workflow automation) plus the "34" mark.
+- The two remaining faces are stamped, never lit (D15, Nathan 24 Oct — no blank metal): the "34 / AUTOMATION" wordmark (Chakra Petch, its one permitted use) and "BUILD FIRST" (Space Grotesk; wording awaiting Nathan's confirmation on the preview).
+- Engravings glow faintly in Spark (`#F2F5FA`) when their face is active, and the glow spreads across the engraving in a direction that says what the face means (D15): the web-design window paints in from the top, the marketing signal radiates outward, the automation flow travels through its nodes, the 34 warms from its centre. At full glow each face is exactly its still.
 - **No gold on the die.** Gold is reserved for the "34" in the wordmark (brand playbook).
 
 ## Motion

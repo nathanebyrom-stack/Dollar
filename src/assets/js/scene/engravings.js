@@ -8,13 +8,25 @@
    Everything is deterministic (seeded noise, no Math.random) so the pre-rendered stills match the live die. */
 import * as THREE from '../../vendor/three-r186/three.min.js';
 
-// Face name -> source image and the share of the face width the glyph fills.
+/* Face name -> what is engraved and how it lights (decision D15).
+   `etch` is the direction the glow spreads when the face lights, chosen to say what the service IS:
+     web-design 'down'    the page paints in from the top
+     marketing  'radial'  the signal radiates outward
+     automation 'right'   the flow travels through the nodes, like the page's graph
+     34         'radial'  the mark warms from its centre
+   The two side faces carry engraved text instead of a symbol (no blank metal, D15): the wordmark in Chakra Petch
+   (the one place that font is allowed) and the build-first line in Space Grotesk. They are stamped, never lit. */
 const GLYPHS = {
-  front:  { src: '/assets/brand/mark-34.svg', fill: 0.58 },
-  top:    { src: '/assets/brand/symbols/web-design.svg', fill: 0.56 },
-  back:   { src: '/assets/brand/symbols/marketing.svg', fill: 0.56 },
-  bottom: { src: '/assets/brand/symbols/workflow-automation.svg', fill: 0.56 },
+  front:  { src: '/assets/brand/mark-34.svg', fill: 0.58, etch: 'radial' },
+  top:    { src: '/assets/brand/symbols/web-design.svg', fill: 0.56, etch: 'down' },
+  back:   { src: '/assets/brand/symbols/marketing.svg', fill: 0.56, etch: 'radial' },
+  bottom: { src: '/assets/brand/symbols/workflow-automation.svg', fill: 0.56, etch: 'right' },
+  right:  { text: ['34', 'AUTOMATION'], font: '"Chakra Petch"', weight: 600, fill: 0.56 },
+  left:   { text: ['BUILD', 'FIRST'], font: '"Space Grotesk"', weight: 700, fill: 0.5 },
 };
+
+const ETCH_STAGES = 5;    // emissive steps per lit face; the last is the full glyph
+const ETCH_SOFT = 0.22;   // width of the soft edge of the spreading light, as a share of the glyph
 
 function mulberry32(seed) {
   return function () {
@@ -36,6 +48,58 @@ async function loadImage(src) {
   img.src = src;
   await img.decode();
   return img;
+}
+
+// Stacked engraved text, each line scaled to the same width, centred. Uses the page's own self-hosted fonts.
+function textMask(lines, font, weight, n, fill) {
+  const c = canvas(n);
+  const g = c.getContext('2d');
+  g.fillStyle = '#fff';
+  g.textBaseline = 'alphabetic';
+  const width = n * fill;
+  const sized = lines.map((line) => {
+    g.font = `${weight} 100px ${font}`;
+    const m = g.measureText(line);
+    const size = (100 * width) / m.width;
+    g.font = `${weight} ${size}px ${font}`;
+    const mm = g.measureText(line);
+    return { line, size, ascent: mm.actualBoundingBoxAscent, descent: mm.actualBoundingBoxDescent };
+  });
+  const gap = n * 0.045;
+  const total = sized.reduce((s, l) => s + l.ascent + l.descent, 0) + gap * (sized.length - 1);
+  let y = (n - total) / 2;
+  for (const l of sized) {
+    g.font = `${weight} ${l.size}px ${font}`;
+    g.fillText(l.line, (n - g.measureText(l.line).width) / 2, y + l.ascent);
+    y += l.ascent + l.descent + gap;
+  }
+  return c;
+}
+
+// The glyph masked to the first `coverage` of its own box, with a soft edge, in the face's etch direction.
+function etchStage(mask, n, fill, etch, coverage) {
+  const c = canvas(n);
+  const g = c.getContext('2d');
+  g.drawImage(mask, 0, 0);
+  g.globalCompositeOperation = 'destination-in';
+  const lo = (n * (1 - fill)) / 2;
+  const span = n * fill;
+  const soft = span * ETCH_SOFT;
+  let grad;
+  if (etch === 'radial') {
+    const r = (span / 2 + soft) * coverage;
+    grad = g.createRadialGradient(n / 2, n / 2, Math.max(0, r - soft), n / 2, n / 2, Math.max(1, r));
+  } else {
+    const at = lo + (span + soft) * coverage;
+    grad = etch === 'down'
+      ? g.createLinearGradient(0, at - soft, 0, at)
+      : g.createLinearGradient(at - soft, 0, at, 0);
+  }
+  grad.addColorStop(0, 'rgba(255,255,255,1)');
+  grad.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, n, n);
+  return c;
 }
 
 // The glyph's alpha, centred and scaled to `fill` of the canvas width.
@@ -154,17 +218,27 @@ export async function buildEngravings({ size, anisotropy, halo }) {
   const radius = Math.max(1, Math.round(size / 512));
   const haloRadius = Math.round(size * halo.radius);
   const depth = size / 64; // slope strength of the recess edge
-  for (const [face, { src, fill }] of Object.entries(GLYPHS)) {
-    const img = await loadImage(src);
-    const mask = glyphMask(img, size, fill);
+  const fonts = [...new Set(Object.values(GLYPHS).filter((s) => s.text).map((s) => `${s.weight} 32px ${s.font}`))];
+  await Promise.all(fonts.map((f) => document.fonts.load(f))).catch(() => { /* fallback fonts still engrave */ });
+  for (const [face, spec] of Object.entries(GLYPHS)) {
+    const mask = spec.text
+      ? textMask(spec.text, spec.font, spec.weight, size, spec.fill)
+      : glyphMask(await loadImage(spec.src), size, spec.fill);
     const dark = paint(mask, size, '#000000', '#ffffff').getContext('2d').getImageData(0, 0, size, size).data;
     const height = new Float32Array(size * size);
     for (let i = 0; i < height.length; i++) height[i] = dark[i * 4] / 255;
     blur(height, size, radius, 2);
-    out[face] = {
-      normalMap: texture(normalMapFromHeight(height, size, depth), false, anisotropy),
-      emissiveMap: texture(emissiveWithHalo(mask, size, haloRadius, halo.gain), true, anisotropy),
-    };
+    out[face] = { normalMap: texture(normalMapFromHeight(height, size, depth), false, anisotropy) };
+    if (spec.etch) {
+      // The light spreads across the engraving in its own direction (D15): one emissive map per step,
+      // the last being the whole glyph, so a still or a finished roll looks exactly as before.
+      out[face].stages = [];
+      for (let s = 1; s <= ETCH_STAGES; s++) {
+        const stage = s === ETCH_STAGES ? mask : etchStage(mask, size, spec.fill, spec.etch, s / ETCH_STAGES);
+        out[face].stages.push(texture(emissiveWithHalo(stage, size, haloRadius, halo.gain), true, anisotropy));
+      }
+      out[face].emissiveMap = out[face].stages[ETCH_STAGES - 1];
+    }
   }
   return out;
 }

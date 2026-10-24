@@ -99,8 +99,14 @@ main:focus { outline: none; }
 .section:last-child { border-bottom: 0; }
 .section--hero { min-height: 60vh; display: grid; place-items: center; text-align: center; }
 h1, h2, h3 { font-family: var(--font-display); font-weight: var(--weight-bold); line-height: var(--leading-tight); letter-spacing: var(--tracking-display); color: var(--color-text-strong); margin: 0 0 var(--space-4); }
-h1 { font-size: var(--text-4xl); }
-h2 { font-size: var(--text-2xl); margin-top: var(--space-6); }
+/* D16: display type carries the page. h1 steps up a size and tightens; every section h2 steps up to 3xl and
+   carries a short machined silver rule beneath it — Silver into nothing, never gold. */
+h1 { font-size: var(--text-4xl); letter-spacing: -0.025em; overflow-wrap: break-word; } /* a long word (incl. [PLACEHOLDER] tokens) breaks rather than overflowing at 320 px */
+h2 { font-size: var(--text-3xl); margin-top: var(--space-6); }
+main h2::after {
+  content: ""; display: block; width: 2.5rem; height: 2px; margin-top: var(--space-3);
+  background: linear-gradient(90deg, var(--silver-200), transparent);
+}
 .eyebrow { font-family: var(--font-mono); font-weight: var(--weight-medium); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: var(--tracking-eyebrow); font-size: var(--text-xs); margin: 0 0 var(--space-2); }
 .prose { max-width: var(--max-width-prose); }
 
@@ -116,13 +122,15 @@ h2 { font-size: var(--text-2xl); margin-top: var(--space-6); }
 .button:hover { box-shadow: var(--glow-sm);
 }
 
-/* Placeholders must stay visible until Nathan confirms copy. */
-.placeholder, .placeholder-block { color: var(--color-placeholder); font-family: var(--font-mono); font-size: var(--text-sm); font-weight: var(--weight-regular); letter-spacing: 0; }
+/* Placeholders must stay visible until Nathan confirms copy — but in silver now, not amber (D16: Nathan, 24 Oct,
+   wants the gold pulled back). The mono face, the brackets and the dashed borders still mark them unmistakably,
+   and they all vanish when the real copy lands. --signal-amber stays defined for build tooling. */
+.placeholder, .placeholder-block { color: var(--color-text-muted); font-family: var(--font-mono); font-size: var(--text-sm); font-weight: var(--weight-regular); letter-spacing: 0; font-style: italic; }
 .placeholder-block { font-size: var(--text-lg); }
 .photo-slot { margin: 0 0 2rem; }
 .photo-slot__frame {
   display: grid; place-items: center; aspect-ratio: 4 / 5; max-width: 20rem;
-  border: 1px dashed var(--color-text-muted); color: var(--color-placeholder); font: var(--text-sm) var(--font-mono); padding: 1rem; text-align: center;
+  border: 1px dashed var(--color-text-muted); color: var(--color-text-muted); font: var(--text-sm) var(--font-mono); padding: 1rem; text-align: center;
 }
 
 /* Footer */

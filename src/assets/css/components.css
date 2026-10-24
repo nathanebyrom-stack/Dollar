@@ -117,4 +117,4 @@ button.button:hover { box-shadow: var(--glow-sm); }
 
 /* A heading that is still a placeholder: amber so it cannot be missed, but in the real heading font, so the page looks
    (and loads fonts) as it will once the copy replaces it. */
-.placeholder-heading { color: var(--color-placeholder); }
+.placeholder-heading { color: var(--color-text-muted); } /* D16: silver, not amber */
