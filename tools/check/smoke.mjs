@@ -465,6 +465,34 @@ async function sceneChecks() {
     await t.ctx.close();
   }
 
+  // ---- Opt-in sound (D14) ----
+  { // Scene pages get a "Play sound" control; nothing starts until it is pressed; pressing flips it both ways.
+    const t = await open('?tier=low');
+    await t.page.waitForTimeout(900);
+    const silent = await t.page.evaluate(() => ({
+      label: document.querySelector('.sound-toggle')?.textContent,
+      started: window.__sound ? window.__sound.started : null,
+    }));
+    await t.page.click('.sound-toggle');
+    await t.page.waitForTimeout(300);
+    const playing = await t.page.evaluate(() => ({ label: document.querySelector('.sound-toggle').textContent, started: window.__sound.started, on: window.__sound.on }));
+    await t.page.click('.sound-toggle');
+    const muted = await t.page.evaluate(() => ({ label: document.querySelector('.sound-toggle').textContent, on: window.__sound.on }));
+    await report('Sound (D14): off by default (no audio engine until pressed), Play starts it, Mute stops it, labels say the action',
+      t, silent.label === 'Play sound' && silent.started === false && playing.started && playing.on && playing.label === 'Mute sound' && !muted.on && muted.label === 'Play sound',
+      JSON.stringify({ silent, playing, muted }));
+    await t.ctx.close();
+  }
+  { // Pages without a scene get no sound control, and sound.js is not even loaded there.
+    const t = await open('about/');
+    const r = await t.page.evaluate(() => ({
+      toggle: !!document.querySelector('.sound-toggle'),
+      script: [...document.scripts].some((s) => s.src.includes('sound.js')),
+    }));
+    await report('Sound (D14): no control and no script on pages without a scene', t, !r.toggle && !r.script, JSON.stringify(r));
+    await t.ctx.close();
+  }
+
   // ---- Contact, About, Privacy (Phase 6) ----
   { // The contact form: structure Netlify Forms needs, accessible labels, a honeypot nobody can reach, and the whole round trip.
     const t = await open('contact/');

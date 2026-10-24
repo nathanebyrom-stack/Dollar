@@ -61,6 +61,10 @@ body[data-scene] main, body[data-scene] .site-footer { position: relative; z-ind
 }
 .motion-toggle:hover, .motion-toggle:focus-visible { color: var(--color-text-strong); border-color: var(--color-text-muted); }
 .reduced-motion .motion-toggle { display: none; }
+/* The sound control (sound.js, D14) sits in the same corner, stacked above the motion control. Sound is not
+   motion, so under reduced motion it stays (it drops to the corner when the motion control hides). */
+.sound-toggle { bottom: calc(var(--space-3) * 2 + 2.1rem); }
+.reduced-motion .sound-toggle { display: inline-block; bottom: var(--space-3); }
 
 .scene-services { border-bottom: 0; }
 .service-panels { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-5); max-width: 28rem; }

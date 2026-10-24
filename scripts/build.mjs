@@ -178,7 +178,7 @@ ${fill(footer, { year })}<script src="/assets/vendor/gsap-3.13.0.min.js" defer><
 ${page.graph ? '<script src="/assets/js/graph.js" defer></script>\n' : ''}${/\{\{(work_cards|case_visual)[:}]/.test(rawBody) ? '<script src="/assets/js/work-cards.js" defer></script>\n' : ''}<script src="/assets/js/reveal.js" defer></script>
 
 <script src="/assets/js/main.js" defer></script>
-${page.scene ? '<script type="module" src="/assets/js/scene/boot.js"></script>\n' : ''}
+${page.scene ? '<script src="/assets/js/sound.js" defer></script>\n<script type="module" src="/assets/js/scene/boot.js"></script>\n' : ''}
 </body>
 </html>
 `;
