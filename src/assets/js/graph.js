@@ -23,6 +23,7 @@
 
   var matcher = null;
   var sticky = section.querySelector('.scene-graph__sticky');
+  function pad() { var cs = getComputedStyle(section); return { top: parseFloat(cs.paddingTop) || 0, bottom: parseFloat(cs.paddingBottom) || 0 }; }
 
   // The flow, in order. Each step: edges that run together, then the nodes they reach. Times are on a 3-unit timeline.
   var STEPS = [
@@ -63,7 +64,14 @@
       // wrong place. A lower number refreshes later, after everything above it on the page.
       // The range is exactly the time the graph is stuck in view (CSS: position sticky at 12svh inside a taller section),
       // so it only animates while all of it is on screen, even the tall phone layout.
-      scrollTrigger: { trigger: section, start: 'top 12%', end: function () { return '+=' + Math.max(1, section.offsetHeight - sticky.offsetHeight); }, scrub: true, invalidateOnRefresh: true, refreshPriority: -10 }
+      // The section's own padding is outside the sticky's travel, so it is added to the start and taken off the length:
+      // otherwise the graph began lighting a padding's height before it stuck (seen on phones, 25 Oct 2026).
+      scrollTrigger: {
+        trigger: section,
+        start: function () { return 'top+=' + pad().top + ' 12%'; },
+        end: function () { var p = pad(); return '+=' + Math.max(1, section.offsetHeight - p.top - p.bottom - sticky.offsetHeight); },
+        scrub: true, invalidateOnRefresh: true, refreshPriority: -10
+      }
     });
     var light = function (id, at) { tl.to(nodes[id], { opacity: 1, duration: 0.3 }, at); };
 
