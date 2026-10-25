@@ -11,7 +11,7 @@
       "status": "live",
       "page": "/work/fluid-process-uk/",
       "visit": { "url": "https://www.fluidprocess.co.uk", "label": "fluidprocess.co.uk" },
-      "summary": "[PLACEHOLDER: Fluid Process UK summary — Nathan's copy]",
+      "summary": "An established firm, well known in its sector but with no brand awareness in the UK. We built the marketing strategy — four to six weeks of who they are and what they do, then a steady move to a stronger call to action — alongside the site that's live today.",
       "media": null,
       "placeholder": "[PLACEHOLDER: Fluid Process UK desktop and phone recordings, to be captured with tools/capture (decision D8)]"
     },
@@ -20,7 +20,7 @@
       "name": "AOE Engineering",
       "status": "in-build",
       "page": "/work/aoe-engineering/",
-      "summary": "[PLACEHOLDER: AOE Engineering summary — Nathan's copy]",
+      "summary": "A 12-year-old WordPress site, being dragged into the 21st century: a full rebuild in progress, products animated so customers can visualise them, and a LinkedIn run to build awareness among their peers.",
       "media": null,
       "placeholder": "[PLACEHOLDER: AOE Engineering old site against the new build, once the new build has a preview]"
     },
@@ -29,7 +29,7 @@
       "name": "Moss & Memory",
       "status": "concept",
       "page": "/work/moss-and-memory/",
-      "summary": "[PLACEHOLDER: Moss & Memory summary — Nathan's copy]",
+      "summary": "A concept build: a premium, fully bespoke product the customer designs from start to finish, themed around weddings, anniversaries and the rest — priced well above the market, because it sells quality, not volume.",
       "media": {
         "desktop": {
           "dir": "/assets/work/moss-and-memory/",
