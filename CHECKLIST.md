@@ -55,12 +55,12 @@ Steps 3 onwards replaced by Jenny, 18 Oct 2026, to follow DOLLAR-SHOWCASE-PLAN.m
 - [x] Privacy page structure (full UK GDPR text before launch)
 
 ## 10. Phase 7: Copy
-- [ ] Nathan's copy dropped in, humanized and slop-gated
-- [ ] Edie fact-check passed
+- [x] Nathan's copy dropped in, humanized and slop-gated (merged 25 Oct, 8ef6d16)
+- [x] Edie fact-check passed (25 Oct, PASS all pages)
 
 ## 11. Phase 8: Quality pass and launch
 - [x] SEO: titles, descriptions, Open Graph, sitemap, robots (the preview stays noindex until `site.indexable` is switched on at launch)
-- [x] Mobile speed: main content < 2.5 s; Lighthouse targets met (measured with placeholder copy and no clips: re-run after Phase 7)
+- [x] Mobile speed: main content < 2.5 s; Lighthouse targets met (re-run after Phase 7, 25 Oct: Home and workflow-automation 100/100/100, LCP 1.7 s / 1.5 s; SEO 69 is the deliberate noindex. Re-run once clips land)
 - [ ] Accessibility: WCAG 2.1 AA (automated axe pass is clean on every route and state; still to do: a manual screen-reader and keyboard walk-through, and zoom to 200%)
 - [ ] Chrome, Safari, Firefox, Edge, iOS, Android
 - [ ] Launch checklist complete
