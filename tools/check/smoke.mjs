@@ -107,6 +107,7 @@ async function checkPage(route, viewport, label, extra = {}) {
     smooth: { lenis: !!window.__lenis, cls: document.documentElement.classList.contains('lenis'), st: typeof window.ScrollTrigger?.create },
     icons: [...document.querySelectorAll('link[rel~="icon"], link[rel="apple-touch-icon"]')].map((l) => l.getAttribute('href')),
     themeColor: document.querySelector('meta[name="theme-color"]')?.getAttribute('content'),
+    scene: !!document.body.dataset.scene,
     logos: ['.site-header .site-logo img', '.site-footer .site-logo img'].map((q) => {
       const i = document.querySelector(q);
       return i && { src: i.getAttribute('src'), alt: i.alt, loaded: i.complete && i.naturalWidth > 0, w: Math.round(i.getBoundingClientRect().width), h: Math.round(i.getBoundingClientRect().height) };
@@ -116,7 +117,8 @@ async function checkPage(route, viewport, label, extra = {}) {
   const wantPreloads = ['inter-latin-wght-normal.woff2', 'space-grotesk-latin-700-normal.woff2'];
   if (JSON.stringify([...info.preloads].sort()) !== JSON.stringify(wantPreloads)) problems.push(`font preloads are ${JSON.stringify(info.preloads)}, want ${JSON.stringify(wantPreloads)}`);
   for (const f of ['Space Grotesk 700', 'Inter 100 900']) if (!info.fonts.includes(f)) problems.push(`font not loaded: ${f} (loaded: ${info.fonts.join(', ')})`);
-  if (info.fonts.some((f) => f.startsWith('Chakra Petch'))) problems.push('Chakra Petch loaded although the logo plate renders (it is fallback only)');
+  // Since D15 the die's side face engraves the wordmark in Chakra Petch (engravings.js loads it), so scene pages may load it; others must not.
+  if (!info.scene && info.fonts.some((f) => f.startsWith('Chakra Petch'))) problems.push('Chakra Petch loaded although the logo plate renders (it is fallback only)');
   if (!info.workLinks[0]) problems.push('header has no link to /work/');
   if (!info.workLinks[1]) problems.push('footer has no link to /work/');
   // Smooth scroll: on in normal motion, off (native scroll) under prefers-reduced-motion.
@@ -709,6 +711,25 @@ async function sceneChecks() {
     await report('Phone menu without JavaScript: no button, and every link is on the page', n,
       !plain.toggle.shown && plain.links.length === 9 && plain.links.every((l) => l.w > 40 && l.h >= 24 && l.right <= phone.width) && !plain.overflow, JSON.stringify({ ...plain, links: plain.links.length }));
     await n.ctx.close();
+  }
+
+  { // Phones: the fixed Play sound / Pause motion controls must not sit on the hero headline on the first screen. Seen on a real
+    // iPhone (1 Nov): three lines of headline reached the bottom corner and the two stacked buttons covered "life.". Checked at the
+    // short viewports Safari actually gives: an iPhone SE with its bars (375 x 553) and a larger iPhone in an in-app browser (393 x 600).
+    const hits = (a, b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+    for (const viewport of [{ width: 375, height: 553 }, { width: 393, height: 600 }]) {
+      const t = await open('', { viewport });
+      await t.page.waitForFunction(() => document.querySelectorAll('.motion-toggle').length === 2, null, { timeout: 15000 }).catch(() => {});
+      const r = await t.page.evaluate(() => {
+        const box = (e) => { const b = e.getBoundingClientRect(); return { left: b.left, right: b.right, top: b.top, bottom: b.bottom }; };
+        return { h1: box(document.querySelector('h1')), toggles: [...document.querySelectorAll('.motion-toggle')].map(box), vh: innerHeight, vw: innerWidth };
+      });
+      const onScreen = r.toggles.every((b) => b.top >= 0 && b.bottom <= r.vh && b.left >= 0 && b.right <= r.vw);
+      const clear = r.toggles.every((b) => !hits(b, r.h1));
+      await report(`Hero controls @ ${viewport.width}x${viewport.height}: both buttons on screen and neither covers the headline`, t,
+        r.toggles.length === 2 && onScreen && clear, JSON.stringify(r));
+      await t.ctx.close();
+    }
   }
 
   // WCAG 2.2.2: a recording that starts by itself can be paused, and a pause sticks.

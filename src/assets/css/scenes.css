@@ -14,10 +14,15 @@
 /* The die frame: CSS decides where the die sits and how big it is. The pre-rendered stills fill this square, and the
    live 3D camera is derived from its measured rectangle (stage.js measureLayout), so a still and the live die line
    up exactly. --die is the height of the die's front face; each still shows it at half the image width. */
-.scene-stage { --die: min(38vh, 26vw); --die-x: 64vw; --die-y: 50vh; --die-shift: 10vw; }
+/* Set on :root (not .scene-stage) so the hero can place its text relative to the die on phones. */
+:root { --die: min(38vh, 26vw); --die-x: 64vw; --die-y: 50vh; --die-shift: 10vw; }
 @media (max-width: 899px) {
-  /* Phones: centred, and below the header (one slim row with a Menu button; the open menu is a panel over the page). */
-  .scene-stage { --die: min(27vh, 56vw); --die-x: 50vw; --die-y: max(46svh, calc(5rem + var(--die) * 0.5 + 1.25rem)); --die-shift: 0px; }
+  /* Phones: centred, and below the header (one slim row with a Menu button; the open menu is a panel over the page).
+     --header-h is the header's height; nojs.css raises it when the menu is laid out in full. The die's centre is at
+     46svh on a tall screen; on a short one (an iPhone SE, or a larger phone in an in-app browser) it rises so that the
+     frame, the face caption, three lines of headline and the control row all fit above the fold (15.5rem together),
+     and it never goes under the header. */
+  :root { --header-h: 5rem; --die: min(27vh, 56vw); --die-x: 50vw; --die-y: clamp(calc(var(--header-h) + var(--die) * 0.5 + 1.25rem), calc(100svh - var(--die) - 15.5rem), 46svh); --die-shift: 0px; }
 }
 .die-frame {
   position: absolute; left: calc(var(--die-x) - var(--die)); top: calc(var(--die-y) - var(--die));
@@ -59,7 +64,11 @@ body[data-scene] main, body[data-scene] .site-footer { position: relative; z-ind
 .scene-hero { min-height: 100svh; place-items: start; align-content: start; text-align: left; border-bottom: 0; padding-top: clamp(6rem, 24vh, 13rem); }
 .scene-hero__text { max-width: 30rem; }
 @media (min-width: 900px) and (max-width: 1279px) { .scene-hero__text { max-width: 40vw; } }
-@media (max-width: 899px) { .scene-hero { padding-top: 66svh; } }
+/* Phones: the text starts under the die frame and its face caption (stage.js puts the caption 14px under the frame), not
+   at a fixed fraction of the screen. The die is placed in viewport terms and the section starts below the header, hence
+   the subtraction. At a flat 66svh three lines of headline reached the bottom corner on an iPhone and sat under the
+   Play sound / Pause motion controls. */
+@media (max-width: 899px) { .scene-hero { padding-top: calc(var(--die-y) + var(--die) + 2.5rem - var(--header-h)); } }
 
 /* The visitor's pause control (motion.js, WCAG 2.2.2): stills the idle drift, the gallery float and the graph's
    ambient pulses. Fixed, so it stays findable wherever the moving content is. Only exists where scripts run, and
@@ -76,6 +85,8 @@ body[data-scene] main, body[data-scene] .site-footer { position: relative; z-ind
    motion, so under reduced motion it stays (it drops to the corner when the motion control hides). */
 .sound-toggle { bottom: calc(var(--space-3) * 2 + 2.1rem); }
 .reduced-motion .sound-toggle { display: inline-block; bottom: var(--space-3); }
+/* Phones: one row, not a stack, so the controls take as little of the short first screen as possible. */
+@media (max-width: 899px) { .sound-toggle { bottom: var(--space-3); left: auto; right: var(--space-3); } }
 
 .scene-services { border-bottom: 0; }
 .service-panels { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-5); max-width: 28rem; }

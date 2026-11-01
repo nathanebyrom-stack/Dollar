@@ -10,7 +10,7 @@
    ========================================================================== */
 
 /* ---- Fonts (self-hosted, OFL licensed — see /assets/fonts/LICENSE-*) ----
-   Chakra Petch is kept for the wordmark fallback only and is never preloaded (D7). */
+   Chakra Petch is kept for the wordmark fallback and the die's engraved wordmark (D15); it is never preloaded (D7). */
 @font-face {
   font-family: "Chakra Petch";
   font-style: normal;
