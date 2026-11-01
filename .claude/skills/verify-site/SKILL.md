@@ -23,6 +23,7 @@ node scripts/build.mjs
 | `node tools/check/seo.mjs` | Pre-launch noindex state and launch-mode (`SITE_INDEXABLE=1`) sitemap, robots, canonical, OG/Twitter tags, OG image 1200x630, unique titles and descriptions | all `ok   seo:` |
 | `node tools/check/contrast.mjs` | Token colour pairs: 4.5:1 text, 3:1 non-text, read live from `tokens.css` | exit 0 |
 | `node tools/check/a11y.mjs` | axe-core WCAG 2.1 A/AA plus best practice on every route at desktop, phone and 320 px, reduced motion, live 3D scene and phone menu open | no violations. "Incomplete" items (mostly text over the 3D canvas) are listed for a human; they are not failures |
+| `node tools/check/keyboard.mjs` | Every route at desktop and phone: skip link first and working, a full Tab cycle with every stop on screen and showing a focus ring, Shift+Tab wraps; then 200% zoom (720 and 640 px wide): no horizontal scroll, no text cut off | `KEYBOARD CHECK PASSED` (96 ok). A screen-reader pass is still a person's job |
 
 Run them one at a time, or write each to its own output file. Two runs sharing one output file interleave and produce a spurious `FAILED`.
 
