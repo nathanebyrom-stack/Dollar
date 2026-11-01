@@ -1,6 +1,4 @@
 // Cross-browser check in WebKit (the Safari engine) and Firefox. Dev-only.
-// NOT YET RUN: the WebKit and Firefox builds this needs were not installed when it was written (23 Oct 2026), so expect to
-// fix small things the first time. The builds cached on the dev Mac were for an older Playwright and do not launch. Chromium is covered by smoke.mjs and a11y.mjs.
 //   cd tools && npx playwright-core install webkit firefox   (once)
 //   node check/browsers.mjs
 // Serves dist/ with the CSP from netlify.toml. For each engine, at phone and desktop widths, every route must load with a

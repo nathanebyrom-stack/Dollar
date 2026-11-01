@@ -70,6 +70,14 @@
 /* While it animates, the section is taller than the screen and the graph stays in view as you scroll through it. */
 html.graph-on .scene-graph { min-height: 150svh; }
 html.graph-on .scene-graph__sticky { position: sticky; top: 12svh; }
+/* Phones: the heading, intro and tall graph together were taller than a phone screen, so the last nodes lit below the
+   fold (Safari on an iPhone shows ~664 px). Here the sticky panel is exactly the space left under its 12svh top, and
+   the graph takes whatever the heading and intro leave, scaling down from its own aspect ratio (viewBox) to fit. */
+@media (max-width: 719px) {
+  html.graph-on .scene-graph__sticky { display: flex; flex-direction: column; height: 84svh; }
+  html.graph-on .scene-graph__sticky .graph-figure { flex: 1 1 auto; min-height: 0; margin-top: var(--space-5); }
+  html.graph-on .graph--tall { width: auto; height: 100%; max-width: min(24rem, 100%); }
+}
 
 /* ---- Case studies (one template: header and visual come from assets/work/projects.json; see scripts/build.mjs) ---- */
 .case-hero { border-bottom: 0; padding-bottom: var(--space-5); }
