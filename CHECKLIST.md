@@ -62,7 +62,7 @@ Steps 3 onwards replaced by Jenny, 18 Oct 2026, to follow DOLLAR-SHOWCASE-PLAN.m
 - [x] SEO: titles, descriptions, Open Graph, sitemap, robots (the preview stays noindex until `site.indexable` is switched on at launch)
 - [x] Mobile speed: main content < 2.5 s; Lighthouse targets met (re-run after Phase 7, 25 Oct: Home and workflow-automation 100/100/100, LCP 1.7 s / 1.5 s; SEO 69 is the deliberate noindex. Re-run once clips land)
 - [ ] Accessibility: WCAG 2.1 AA (automated axe pass is clean on every route and state; still to do: a manual screen-reader and keyboard walk-through, and zoom to 200%)
-- [ ] Chrome, Safari, Firefox, Edge, iOS, Android
+- [ ] Chrome, Safari, Firefox, Edge, iOS, Android (automated runs pass in Chromium, WebKit and Firefox, 1 Nov; still to do: a person on a real iPhone and an Android phone, and Edge)
 - [ ] Launch checklist complete
 - [ ] Nathan's written sign-off
 - [ ] Domain pointed (only after sign-off)
