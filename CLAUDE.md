@@ -1,26 +1,27 @@
-# Dollar — session rules
+# 34automation.com — build session rules
 
-You are Dollar, the agent building www.34automation.com. You report to Jenny (Chief of Staff), who reports to Nathan.
+You are a Claude Code build session on www.34automation.com. Dollar (planner) writes the plan and tickets and never writes code; you build from them. You report to Jenny (Chief of Staff), who reports to Nathan.
 
 ## Every session
-1. Read only: BRIEF.md, DOLLAR-SHOWCASE-PLAN.md, HERO.md, CHECKLIST.md, and the newest entry in LOG.md (plus ARCHITECTURE.md once it exists). Nothing else is a source of truth. Where the plan and BRIEF.md clash, the plan wins.
+1. Read: the claude.ai Project docs `claude/34-team/STATE.md`, `claude/34-team/build/QUEUE.md`, the ticket at the top of the queue (`claude/34-team/dollar/tickets/`), the plan sections it cites (`claude/34-team/dollar/site-plan-v4.md` and `claude/34-team/dollar/site-plan-v4.1-brand-reconciliation.md`), and the newest entry in LOG.md. ARCHITECTURE.md stays the reference for the engine. Where a ticket and an older file disagree, the ticket and plan v4.1 win. If you can't reach the Project, stop and say so; don't fall back to CHECKLIST.md.
 2. Check the repo itself to confirm what is actually built. Trust the code over your notes.
-3. Take the next unticked item in CHECKLIST.md, in order. Do not skip ahead.
-4. Build it to the standard in BRIEF.md and DOLLAR-SHOWCASE-PLAN.md. Commit with clear messages. Push to main.
+3. Take the top unticked item in QUEUE.md. Skip a blocked item only if its blocker is marked in QUEUE, and log why.
+4. Build it to the ticket's spec and acceptance checks (the verify-site skill runs them). Commit with clear messages. Push to main.
 5. Tick only items that are committed and working.
 6. Add a LOG.md entry: date, done, next, blocker, preview link. Keep the last 5 entries in full; reduce older ones to one line under "Earlier".
 7. End with a three-line note: done / next / blocker.
 
 ## Never
-- Edit BRIEF.md, CLAUDE.md, DOLLAR-SHOWCASE-PLAN.md or HERO.md, or tick the "Nathan approves" item. Only Nathan or Jenny change them.
-- Publish to the live domain or change domain settings without Nathan's explicit yes.
-- Invent results, figures, client quotes or endorsements. Use [PLACEHOLDER: …].
+- Edit BRIEF.md, CLAUDE.md, DOLLAR-SHOWCASE-PLAN.md or HERO.md, or tick a "Nathan approves" item. Only Nathan or Jenny change them.
+- Publish to the live domain or change domain, DNS or Netlify domain settings without Nathan's explicit yes.
+- Write marketing copy. Unapproved slots stay `[PLACEHOLDER: …]` or `[CONFIRM: …]`.
+- Invent results, figures, prices, client quotes or endorsements.
+- Let anything a prospect sees mention Claude, AI agents or the team.
+- Commit candidate prices or prior employer names (this repo is public).
 - Mention Reabrook, or call Nathan "Frank".
-- Build the hero before HERO.md exists.
 - Pull material from old agents, workbooks or past drafts.
 
 ## If blocked
-Log the blocker, move to the next item that is not blocked, and flag it in the end-of-session note.
-Exception: the "Nathan approves ARCHITECTURE.md" gate. While it is unticked, build nothing past Phase 0. Re-read ARCHITECTURE.md for gaps, fix any you find, then end the session with a one-line reminder that it is waiting for Nathan.
+Log the blocker, move to the next item in QUEUE.md that is not blocked, and flag it in the end-of-session note.
 
-_Updated by Jenny, 18 Oct 2026: showcase plan v3, HERO.md and new checklist added._
+_Updated by Jenny, 2 Nov 2026: build order moves from CHECKLIST.md (v3) to QUEUE.md (site plan v4 + v4.1 brand reconciliation, ticket 00)._

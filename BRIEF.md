@@ -1,3 +1,5 @@
+> **Superseded where they differ by site plan v4 (approved 30 Oct 2026) and the v4.1 brand reconciliation (1 Nov 2026). Build order is QUEUE.md.** (Jenny, 2 Nov 2026)
+
 # Dollar — Build Brief: www.34automation.com
 
 Master copy: Claude Doc "34 Automation Website — Build Brief" (edited by Nathan or Jenny only).

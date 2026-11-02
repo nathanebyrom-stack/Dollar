@@ -1,3 +1,5 @@
+> **Closed 1 Nov 2026. Open items (VoiceOver, real iPhone/Android/Edge, launch checklist, sign-off, domain) carry into ticket 19 of QUEUE.md.** (Jenny, 2 Nov 2026)
+
 # Dollar — Build Checklist
 
 Tick items only when the work is committed and visible in the repo. One step at a time, in order.

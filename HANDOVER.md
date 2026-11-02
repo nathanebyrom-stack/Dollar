@@ -1,3 +1,5 @@
+> **Superseded where they differ by site plan v4 (approved 30 Oct 2026) and the v4.1 brand reconciliation (1 Nov 2026). Build order is QUEUE.md.** (Jenny, 2 Nov 2026)
+
 # HANDOVER.md: 34automation.com build, for Claude Code
 
 Written by Dollar, 20 Oct 2026. Dollar's scheduled sessions are switched off; Nathan continues the build in Claude Code from here.
