@@ -593,10 +593,11 @@ async function sceneChecks() {
     await t.ctx.close();
   }
 
-  { // Privacy: the structure for the full UK GDPR text, each part a visible placeholder.
+  { // Privacy: the full UK GDPR text. One h1, the core sections present, and the only outbound link is to the regulator.
     const t = await open('privacy/');
-    const r = await t.page.evaluate(() => { const h2 = [...document.querySelectorAll('main h2')]; return { headings: h2.map((h) => h.textContent), placeholders: h2.filter((h) => h.nextElementSibling && h.nextElementSibling.classList.contains('placeholder')).length, external: [...document.querySelectorAll('main a[href^="http"]')].length, h1: document.querySelectorAll('h1').length }; });
-    await report('Privacy: nine structured sections, each with a visible placeholder, no external links', t, r.headings.length === 9 && r.placeholders === 9 && r.external === 0 && r.h1 === 1 && r.headings.includes('Cookies') && r.headings.includes('Your rights'), JSON.stringify(r));
+    const r = await t.page.evaluate(() => { const h2 = [...document.querySelectorAll('main h2')]; return { headings: h2.map((h) => h.textContent), ids: h2.map((h) => h.id), external: [...document.querySelectorAll('main a[href^="http"]')].map((a) => new URL(a.href).hostname), h1: document.querySelectorAll('h1').length }; });
+    const need = ['Who we are', 'Cookies', 'Your rights', 'Complaints', 'If we contacted you first'];
+    await report('Privacy: one h1, core sections with anchors, outbound links only to ico.org.uk', t, r.h1 === 1 && need.every((h) => r.headings.includes(h)) && r.ids.every(Boolean) && r.ids.includes('prospects') && r.external.every((h) => h === 'ico.org.uk'), JSON.stringify(r));
     await t.ctx.close();
   }
 
