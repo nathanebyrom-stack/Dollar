@@ -122,7 +122,14 @@ button.button:hover { box-shadow: var(--glow-sm); }
 .about-grid { display: grid; gap: var(--space-6); align-items: start; }
 @media (min-width: 900px) { .about-grid { grid-template-columns: minmax(0, 20rem) minmax(0, 1fr); gap: var(--space-8); } }
 .about-grid__text h2:first-child { margin-top: 0; }
+@media (min-width: 900px) { .about-grid--solo { grid-template-columns: minmax(0, 46rem); } } /* until Nathan's photo is in */
 
 /* A heading that is still a placeholder: amber so it cannot be missed, but in the real heading font, so the page looks
    (and loads fonts) as it will once the copy replaces it. */
 .placeholder-heading { color: var(--color-text-muted); } /* D16: silver, not amber */
+
+/* Launch, 7 Nov 2026: a project with no recording yet shows a title card instead of slot text. Machined, not dashed. */
+.work-card__media--titlecard, .case-visual .work-card__media--titlecard { border: 1px solid var(--color-border); border-style: solid; background: linear-gradient(135deg, var(--color-surface), var(--color-bg)); box-shadow: var(--edge-light); }
+.titlecard { display: grid; gap: var(--space-2); margin: 0; text-align: center; }
+.titlecard__name { font-family: var(--font-display, inherit); font-size: clamp(1.5rem, 1rem + 2.5vw, 3rem); font-weight: var(--weight-bold, 700); color: var(--color-text); letter-spacing: -0.01em; line-height: 1.05; }
+.titlecard__meta { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.12em; }

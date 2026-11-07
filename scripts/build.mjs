@@ -70,16 +70,17 @@ const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 const posterFile = (m) => { const avif = m.poster.replace(/\.jpg$/, '.avif'); return existsSync(join(src, m.dir, avif)) ? avif : m.poster; };
 const videoTag = (m) => `<video class="work-card__video" muted loop playsinline preload="none" poster="${m.dir}${posterFile(m)}" width="${m.width}" height="${m.height}" data-webm="${m.dir}${m.webm}" data-mp4="${m.dir}${m.mp4}" aria-hidden="true" tabindex="-1"></video>`;
 
-// The visual for a project: its desktop recording (and phone recording, in front of it), or a visible placeholder if it has
-// none yet. Shared by the Work cards and the case-study pages, so the videos behave the same everywhere (work-cards.js).
+// The visual for a project: its desktop recording (and phone recording, in front of it), or, until a recording exists, a
+// title card (name and status; decorative, so hidden from screen readers). The slot text stays in projects.json "placeholder"
+// for the launch register. Shared by the Work cards and the case-study pages, so the videos behave the same everywhere (work-cards.js).
 // `wrapper` is the wrapper's class; `attrs` any extra attributes on it.
 function projectVisual(p, wrapper, attrs = '') {
   const desktop = p.media && p.media.desktop;
   const phone = p.media && p.media.phone;
   if (!desktop) {
     return `<div class="${wrapper}"${attrs}>
-        <div class="work-card__media work-card__media--placeholder" data-kind="desktop">
-          <p class="placeholder">${esc(p.placeholder)}</p>
+        <div class="work-card__media work-card__media--placeholder work-card__media--titlecard" data-kind="desktop" aria-hidden="true">
+          <p class="titlecard"><span class="titlecard__name">${esc(p.name)}</span><span class="titlecard__meta">${esc(work.statuses[p.status])}${p.status === 'live' && p.visit ? ` · ${esc(p.visit.label)}` : ''}</span></p>
         </div>
       </div>`;
   }
@@ -103,7 +104,7 @@ const caseHeader = (p) => `<section class="section case-hero" aria-labelledby="p
     <p class="eyebrow">Case study</p>
     <h1 id="page-title">${esc(p.name)}</h1>
     <p class="work-card__status">${statusBadge(p)}</p>
-    <p class="placeholder">${esc(p.summary)}</p>${p.status === 'live' && p.visit ? `\n    <p>${visitLink(p, 'work-card__visit')}</p>` : ''}
+    <p class="work-card__summary">${esc(p.summary)}</p>${p.status === 'live' && p.visit ? `\n    <p>${visitLink(p, 'work-card__visit')}</p>` : ''}
     <p><a class="button" href="/contact/">Start a conversation</a></p>
   </section>`;
 const caseVisual = (p) => `<section class="section case-section" aria-label="${esc(p.name)} recordings">
@@ -117,7 +118,7 @@ function workCards(level = 3) {
       <div class="work-card__body">
         <p class="work-card__status">${statusBadge(p)}</p>
         <h${level} class="work-card__title"><a href="${p.page}">${esc(p.name)}</a></h${level}>
-        <p class="placeholder">${esc(p.summary)}</p>${p.status === 'live' && p.visit ? `\n        ${visitLink(p, 'work-card__visit')}` : ''}
+        <p class="work-card__summary">${esc(p.summary)}</p>${p.status === 'live' && p.visit ? `\n        ${visitLink(p, 'work-card__visit')}` : ''}
       </div>
     </li>`;
   });

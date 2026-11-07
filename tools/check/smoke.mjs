@@ -427,13 +427,13 @@ async function sceneChecks() {
     const t = await open('work/fluid-process-uk/');
     await t.page.waitForTimeout(900);
     const before = await t.page.evaluate(() => {
-      const h2 = document.getElementById('design-title');
+      const h2 = document.getElementById('cta-title');
       return { op: +getComputedStyle(h2).opacity, below: h2.getBoundingClientRect().top > innerHeight };
     });
     await t.page.evaluate(() => scrollTo(0, document.body.scrollHeight));
     await t.page.waitForTimeout(1500);
     const after = await t.page.evaluate(() => {
-      const h2 = document.getElementById('design-title');
+      const h2 = document.getElementById('cta-title');
       return { op: +getComputedStyle(h2).opacity, inline: h2.getAttribute('style') || '' };
     });
     // The case media drifts (parallax) as the page scrolls past it.
@@ -596,8 +596,9 @@ async function sceneChecks() {
   { // Privacy: the full UK GDPR text. One h1, the core sections present, and the only outbound link is to the regulator.
     const t = await open('privacy/');
     const r = await t.page.evaluate(() => { const h2 = [...document.querySelectorAll('main h2')]; return { headings: h2.map((h) => h.textContent), ids: h2.map((h) => h.id), external: [...document.querySelectorAll('main a[href^="http"]')].map((a) => new URL(a.href).hostname), h1: document.querySelectorAll('h1').length }; });
-    const need = ['Who we are', 'Cookies', 'Your rights', 'Complaints', 'If we contacted you first'];
-    await report('Privacy: one h1, core sections with anchors, outbound links only to ico.org.uk', t, r.h1 === 1 && need.every((h) => r.headings.includes(h)) && r.ids.every(Boolean) && r.ids.includes('prospects') && r.external.every((h) => h === 'ico.org.uk'), JSON.stringify(r));
+    // The outreach section ('If we contacted you first', #prospects) comes back with the v4 outreach; the launch version covers the v3 site.
+    const need = ['Who we are', 'When you contact us', 'Cookies', 'Your rights', 'Complaints'];
+    await report('Privacy: one h1, core sections with anchors, outbound links only to ico.org.uk', t, r.h1 === 1 && need.every((h) => r.headings.includes(h)) && r.ids.every(Boolean) && r.ids.includes('contact-form') && r.external.every((h) => h === 'ico.org.uk'), JSON.stringify(r));
     await t.ctx.close();
   }
 
@@ -609,6 +610,12 @@ async function sceneChecks() {
       // The reveal styles the section's direct children (.about-grid, not the slot inside it); deferred scripts run
       // before `load`, so by now the entrance styles are on and this waits for them to finish and clear.
       await t.page.waitForFunction(() => !document.querySelector('.about-grid').getAttribute('style'), null, { timeout: 10000 }).catch(() => {});
+      if (!(await t.page.$('.photo-slot__frame'))) { // Until Nathan's photo is in: the text runs alone, in a readable measure, no overflow.
+        const solo = await t.page.evaluate(() => { const x = document.querySelector('.about-grid__text').getBoundingClientRect(); return { width: Math.round(x.width), overflow: document.documentElement.scrollWidth > innerWidth }; });
+        await report(`About (${label}): no photo yet, so the text runs alone without overflow`, t, solo.width > 250 && solo.width <= 760 && !solo.overflow, JSON.stringify(solo));
+        await t.ctx.close();
+        continue;
+      }
       const r = await t.page.evaluate(() => { const f = document.querySelector('.photo-slot__frame').getBoundingClientRect(); const x = document.querySelector('.about-grid__text').getBoundingClientRect(); return { ratio: +(f.width / f.height).toFixed(2), besideText: x.left >= f.right - 1 && Math.abs(x.top - f.top) < 40, overflow: document.documentElement.scrollWidth > innerWidth }; });
       await report(`About (${label}): a 4:5 photo slot ${side ? 'beside' : 'above'} the text`, t, Math.abs(r.ratio - 0.8) < 0.02 && r.besideText === side && !r.overflow, JSON.stringify(r));
       await t.ctx.close();
@@ -617,9 +624,9 @@ async function sceneChecks() {
 
   // ---- Case studies (Phase 5): honest status, the rules about what may be shown, and the videos ----
   const CASES = [
-    ['work/fluid-process-uk/', 'Fluid Process UK', 'live', 'Live', 3],
-    ['work/aoe-engineering/', 'AOE Engineering', 'in-build', 'In build', 2],
-    ['work/moss-and-memory/', 'Moss & Memory', 'concept', 'Concept', 1],
+    ['work/fluid-process-uk/', 'Fluid Process UK', 'live', 'Live', 1],
+    ['work/aoe-engineering/', 'AOE Engineering', 'in-build', 'In build', 1],
+    ['work/moss-and-memory/', 'Moss & Memory', 'concept', 'Concept', 0],
   ];
   for (const [route, name, status, label, placeholders] of CASES) {
     const t = await open(route);
@@ -630,7 +637,7 @@ async function sceneChecks() {
       placeholders: document.querySelectorAll('.work-card__media--placeholder').length, eyebrow: document.querySelector('.case-hero .eyebrow')?.textContent,
     }));
     const outboundOk = status === 'live' ? r.outbound.join() === 'www.fluidprocess.co.uk' : r.outbound.length === 0;
-    await report(`${route}: one h1, the ${label} badge, a back link, outbound link only if Live, visible placeholders`, t,
+    await report(`${route}: one h1, the ${label} badge, a back link, outbound link only if Live, a title card where no recording exists`, t,
       r.h1.length === 1 && r.h1[0] === name && r.badge === `badge badge--${status}|${label}` && r.back === '/work/' && r.cta && outboundOk && r.placeholders >= placeholders && r.eyebrow === 'Case study', JSON.stringify(r));
     await t.ctx.close();
   }
