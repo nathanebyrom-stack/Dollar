@@ -3,6 +3,12 @@
 Keep the last 5 entries in full. Reduce older ones to one line under "Earlier".
 Each entry: date, what was done, what's next, blocker, preview link.
 
+## 11 Nov 2026 (Jenny, copy fix for Nathan)
+- Done: removed the "12-year-old WordPress site" line from AOE Engineering everywhere it appeared: work card summary (projects.json), AOE meta description (pages.json), and the AOE case page heading and opening sentence. Build clean.
+- Next: nothing new from this change.
+- Blocker: none.
+- Preview: live site redeploys from main on Netlify.
+
 ## 7 Nov 2026 (session 25, Jenny with Nathan, launch tonight)
 - **Decision:** Nathan answered A13: launch what is built (v3) tonight and keep building on it; v4 (QUEUE.md, ticket 00) carries on afterwards. He gave written yes to the DNS changes on 34automation.com (records confirmed in chat first). 34 starts trading on 23 Nov 2026.
 - **Done:** contact email on Contact (nathan@34automation.co.uk); every visible `[PLACEHOLDER]` taken off the pages and kept as `<!-- LATER: … -->` notes in the source (Nathan's photo, About/footer company details, the three service deliverables, FPUK ROI and design-system media, AOE before/after, M&M "Your story" still); projects with no recording show a name-and-status title card (the slot text stays in projects.json for the register); Work summaries no longer styled as placeholders. Privacy: jenny/privacy-draft merged and cut back to what the v3 site does (one form: name, email, message; IONOS mail; LinkedIn/Buffer; AI tools), dated 7 Nov 2026; scorecard, two-door form, /m/ sample pages, cold outreach and newsletter sections stay on the branch to come back with those features (outreach only once the LIA is signed). Smoke updated for the launch layout.
